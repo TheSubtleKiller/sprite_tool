@@ -18,6 +18,25 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\imgui\imgui.cpp" />
+    <ClCompile Include="src\imgui\imgui_demo.cpp" />
+    <ClCompile Include="src\imgui\imgui_draw.cpp" />
+    <ClCompile Include="src\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\imgui_impl\imgui_impl_glfw.cpp" />
+    <ClCompile Include="src\imgui_impl\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\sprite_tool.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\imgui\imconfig.h" />
+    <ClInclude Include="src\imgui\imgui.h" />
+    <ClInclude Include="src\imgui\imgui_internal.h" />
+    <ClInclude Include="src\imgui\imstb_rectpack.h" />
+    <ClInclude Include="src\imgui\imstb_textedit.h" />
+    <ClInclude Include="src\imgui\imstb_truetype.h" />
+    <ClInclude Include="src\imgui_impl\imgui_impl_glfw.h" />
+    <ClInclude Include="src\imgui_impl\imgui_impl_opengl3.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{7533FEE2-54F4-4655-B408-196D6DB94CC8}</ProjectGuid>
@@ -104,13 +123,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>include/imgui;include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;include/jsoncpp;include/zlib;include/libpng;src/imgui;include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>jsoncpp.lib;zlibstatic.lib;libpng16_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -149,25 +168,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="imgui_impl_glfw.cpp" />
-    <ClCompile Include="imgui_impl_opengl3.cpp" />
-    <ClCompile Include="include\imgui\imgui.cpp" />
-    <ClCompile Include="include\imgui\imgui_demo.cpp" />
-    <ClCompile Include="include\imgui\imgui_draw.cpp" />
-    <ClCompile Include="include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="sprite_tool.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="imgui_impl_glfw.h" />
-    <ClInclude Include="imgui_impl_opengl3.h" />
-    <ClInclude Include="include\imgui\imconfig.h" />
-    <ClInclude Include="include\imgui\imgui.h" />
-    <ClInclude Include="include\imgui\imgui_internal.h" />
-    <ClInclude Include="include\imgui\imstb_rectpack.h" />
-    <ClInclude Include="include\imgui\imstb_textedit.h" />
-    <ClInclude Include="include\imgui\imstb_truetype.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

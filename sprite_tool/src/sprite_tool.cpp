@@ -4,16 +4,21 @@
 #define GLEW_STATIC
 
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include "imgui_impl/imgui_impl_glfw.h"
+#include "imgui_impl/imgui_impl_opengl3.h"
 
-#include "include/GL/glew.h"
-#include "include/GLFW/glfw3.h"
-#include "include/glm/glm.hpp"
+#include "GL/glew.h"
+#include "GLFW/glfw3.h"
+#include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 
 #include <iostream>
 #include <string>
+
+#define cimg_use_png
+#include "CImg/CImg.h"
+
+#include "json/json.h"
 
 
 
@@ -65,6 +70,21 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 int main()
 {
     std::cout << "Hello World!\n";
+
+    {
+        using namespace cimg_library;
+
+        CImg <unsigned char> image("collection_Golden.png");
+
+        /*CImgDisplay main_disp(image, "Click a point");
+
+        while (!main_disp.is_closed()) {
+            main_disp.wait();
+            if (main_disp.button() && main_disp.mouse_y() >= 0) {
+                const int y = main_disp.mouse_y();
+            }
+        }*/
+    }
 
 
 
