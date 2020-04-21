@@ -8,3 +8,4 @@ sprite_tool/assets_plz_ignore
 # vs local cache
 .vs/
 .vscode/ipch/
+sprite_tool/imgui.ini
