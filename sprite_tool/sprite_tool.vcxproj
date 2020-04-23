@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\file_helper.cpp" />
     <ClCompile Include="src\gl_render_helper.cpp" />
     <ClCompile Include="src\imgui\imgui.cpp" />
     <ClCompile Include="src\imgui\imgui_demo.cpp" />
@@ -26,9 +27,11 @@
     <ClCompile Include="src\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\imgui_impl\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\imgui_impl\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\spritesheet.cpp" />
     <ClCompile Include="src\sprite_tool.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\file_helper.hpp" />
     <ClInclude Include="src\gl_render_helper.hpp" />
     <ClInclude Include="src\imgui\imconfig.h" />
     <ClInclude Include="src\imgui\imgui.h" />
@@ -38,6 +41,7 @@
     <ClInclude Include="src\imgui\imstb_truetype.h" />
     <ClInclude Include="src\imgui_impl\imgui_impl_glfw.h" />
     <ClInclude Include="src\imgui_impl\imgui_impl_opengl3.h" />
+    <ClInclude Include="src\spritesheet.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -123,7 +127,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TIXML_USE_TICPP;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>src;include/jsoncpp;include/zlib;include/libpng;src/imgui;include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -131,7 +135,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jsoncpp.lib;zlibstatic.lib;libpng16_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tiny_xml_d.lib;jsoncpp.lib;zlibstatic.lib;libpng16_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

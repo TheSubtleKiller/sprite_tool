@@ -4,6 +4,8 @@
 #define GLEW_STATIC
 
 #include "gl_render_helper.hpp"
+#include "file_helper.hpp"
+#include "spritesheet.hpp"
 
 #include "imgui.h"
 #include "imgui/imgui_internal.h"
@@ -123,8 +125,6 @@ void SetupViewportFramebuffer(uint32_t& _uFBO, uint32_t & _uTexture, uint32_t & 
 
 int main()
 {
-    std::cout << "Hello World!\n";
-
     {
         using namespace cimg_library;
 
@@ -140,6 +140,11 @@ int main()
         }*/
     }
 
+    std::string _sSpriteSheetXml = FileHelper::GetFileContents("assets_plz_ignore/InGame.xml");
+
+    CSpriteSheet _SpriteSheet;
+    _SpriteSheet.ParseXML(_sSpriteSheetXml);
+
 
     //---------- Setup GLFW
     //========================================
@@ -154,7 +159,7 @@ int main()
     const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    GLFWwindow* window = glfwCreateWindow(640, 480, "Sprite Tool", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1024, 768, "Sprite Tool", NULL, NULL);
     if (!window)
     {
         // Window or OpenGL context creation failed
@@ -286,8 +291,8 @@ int main()
         if (vec2ViewportWindowSize.x != ViewportData.m_uWidth ||
             vec2ViewportWindowSize.y != ViewportData.m_uHeight)
         {
-            ViewportData.m_uWidth = vec2ViewportWindowSize.x;
-            ViewportData.m_uHeight = vec2ViewportWindowSize.y;
+            ViewportData.m_uWidth = static_cast<uint32_t>(vec2ViewportWindowSize.x);
+            ViewportData.m_uHeight = static_cast<uint32_t>(vec2ViewportWindowSize.y);
             SetupViewportFramebuffer(ViewportData.m_uFrameBuffer, ViewportData.m_uTexture, ViewportData.m_uRenderBufferObj, ViewportData.m_uWidth, ViewportData.m_uHeight);
         }
         //========================================
