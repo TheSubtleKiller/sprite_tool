@@ -34,6 +34,8 @@ void CSpriteSheet::ParseCell(ticpp::Element* _pElemCell)
 		_pElemCell->GetAttribute("aw", &_Cell.aw, false);
 		_pElemCell->GetAttribute("ah", &_Cell.ah, false);
 
+		_Cell.CalculateNormalisedValues(m_uTexWidth, m_uTexHeight);
+
 		m_mapSpriteData[_Cell.m_sName] = _Cell;
 	}
 	catch (ticpp::Exception& error)
