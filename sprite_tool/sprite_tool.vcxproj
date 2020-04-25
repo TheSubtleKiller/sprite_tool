@@ -29,6 +29,8 @@
     <ClCompile Include="src\imgui_impl\imgui_impl_opengl3.cpp" />
     <ClCompile Include="src\spritesheet.cpp" />
     <ClCompile Include="src\sprite_tool.cpp" />
+    <ClCompile Include="src\ui\ui.cpp" />
+    <ClCompile Include="src\utility\stl_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\file_helper.hpp" />
@@ -42,6 +44,8 @@
     <ClInclude Include="src\imgui_impl\imgui_impl_glfw.h" />
     <ClInclude Include="src\imgui_impl\imgui_impl_opengl3.h" />
     <ClInclude Include="src\spritesheet.hpp" />
+    <ClInclude Include="src\ui\ui.hpp" />
+    <ClInclude Include="src\utility\stl_helper.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
