@@ -5,7 +5,9 @@
 
 #include "gl_render_helper.hpp"
 #include "file_helper.hpp"
+#include "utility/stl_helper.hpp"
 #include "spritesheet.hpp"
+#include "ui/ui.hpp"
 
 #include "imgui.h"
 #include "imgui/imgui_internal.h"
@@ -16,9 +18,6 @@
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
-
-#define cimg_use_png
-#include "CImg/CImg.h"
 
 #include "json/json.h"
 
@@ -125,22 +124,12 @@ void SetupViewportFramebuffer(uint32_t& _uFBO, uint32_t & _uTexture, uint32_t & 
 
 int main()
 {
-    {
-        using namespace cimg_library;
+    std::string _sFileNameToTest = "InGame";
+    std::string _sXmlPathToTest = stl_helper::Format("assets_plz_ignore/%s.xml", _sFileNameToTest.c_str());
+    std::string _sPngPathToTest = stl_helper::Format("assets_plz_ignore/%s.png", _sFileNameToTest.c_str());
 
-        CImg <unsigned char> image("assets_plz_ignore/collection_Golden.png");
 
-        /*CImgDisplay main_disp(image, "Click a point");
-
-        while (!main_disp.is_closed()) {
-            main_disp.wait();
-            if (main_disp.button() && main_disp.mouse_y() >= 0) {
-                const int y = main_disp.mouse_y();
-            }
-        }*/
-    }
-
-    std::string _sSpriteSheetXml = FileHelper::GetFileContents("assets_plz_ignore/InGame.xml");
+    std::string _sSpriteSheetXml = FileHelper::GetFileContentsString(_sXmlPathToTest);
 
     CSpriteSheet _SpriteSheet;
     _SpriteSheet.ParseXML(_sSpriteSheetXml);
@@ -265,6 +254,18 @@ int main()
     //========================================
 
 
+    int width = 0, height = 0;
+    auto _pData = FileHelper::LoadPng(_sPngPathToTest.c_str(), width, height);
+
+    uint32_t _uTestTexture = 0;
+    glGenTextures(1, &_uTestTexture);
+    glBindTexture(GL_TEXTURE_2D, _uTestTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _pData->data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
     // Our state
     bool show_demo_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -377,6 +378,9 @@ int main()
                 std::string const& timeline_window_id = "timeline";
                 ImGui::DockBuilderDockWindow(timeline_window_id.c_str(), dock_id_bottom);
 
+                std::string const& sprites_window_id = "sprites";
+                ImGui::DockBuilderDockWindow(sprites_window_id.c_str(), dock_id_bottom);
+
                 ImGui::DockBuilderFinish(_RootDockSpaceId);
             }
             //========================================
@@ -409,6 +413,14 @@ int main()
                 // Animation timeline
                 if (ImGui::Begin("timeline", nullptr))
                 {
+
+                }
+                ImGui::End();
+
+                // Sprites
+                if (ImGui::Begin("sprites", nullptr))
+                {
+                    ui::SpriteSheetWindow(_SpriteSheet, _uTestTexture);
                 }
                 ImGui::End();
             }
