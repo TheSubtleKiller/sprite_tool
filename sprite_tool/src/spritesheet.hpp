@@ -48,7 +48,7 @@ protected:
 	std::string m_sTexName;
 	std::string m_sTexType;
 
-	uint32_t m_uTexWidth;
-	uint32_t m_uTexHeight;
+	uint32_t m_uTexWidth = 0;
+	uint32_t m_uTexHeight = 0;
 };
 //========================================

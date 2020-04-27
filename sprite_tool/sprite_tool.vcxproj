@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\file_helper.cpp" />
+    <ClCompile Include="src\compound_sprite.cpp" />
     <ClCompile Include="src\gl_render_helper.cpp" />
     <ClCompile Include="src\imgui\imgui.cpp" />
     <ClCompile Include="src\imgui\imgui_demo.cpp" />
@@ -30,10 +30,11 @@
     <ClCompile Include="src\spritesheet.cpp" />
     <ClCompile Include="src\sprite_tool.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
+    <ClCompile Include="src\utility\file_helper.cpp" />
     <ClCompile Include="src\utility\stl_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\file_helper.hpp" />
+    <ClInclude Include="src\compound_sprite.hpp" />
     <ClInclude Include="src\gl_render_helper.hpp" />
     <ClInclude Include="src\imgui\imconfig.h" />
     <ClInclude Include="src\imgui\imgui.h" />
@@ -45,6 +46,7 @@
     <ClInclude Include="src\imgui_impl\imgui_impl_opengl3.h" />
     <ClInclude Include="src\spritesheet.hpp" />
     <ClInclude Include="src\ui\ui.hpp" />
+    <ClInclude Include="src\utility\file_helper.hpp" />
     <ClInclude Include="src\utility\stl_helper.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

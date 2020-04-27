@@ -4,23 +4,27 @@
 #define GLEW_STATIC
 
 #include "gl_render_helper.hpp"
-#include "file_helper.hpp"
+#include "utility/file_helper.hpp"
 #include "utility/stl_helper.hpp"
+
 #include "spritesheet.hpp"
+#include "compound_sprite.hpp"
+
 #include "ui/ui.hpp"
 
+// Imgui
 #include "imgui.h"
 #include "imgui/imgui_internal.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
 
+// gl stuff
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 
-#include "json/json.h"
-
+// stl
 #include <iostream>
 #include <string>
 
@@ -124,15 +128,57 @@ void SetupViewportFramebuffer(uint32_t& _uFBO, uint32_t & _uTexture, uint32_t & 
 
 int main()
 {
-    std::string _sFileNameToTest = "InGame";
+    std::map<std::string, CSpriteSheet> mapSpriteSheets;
+
+
+
+    //========================================
+    std::string _sJsonPathToTest = stl_helper::Format("assets_plz_ignore/JSON/%s.json", "monkey_city_icon");
+    std::string _sJson = FileHelper::GetFileContentsString(_sJsonPathToTest);
+
+    CCompoundSprite _CompoundSprite;
+    _CompoundSprite.ParseJSON(_sJson);
+    //========================================
+
+
+    //========================================
+    std::vector<std::string> _vectorTexturesToLoad;
+    auto _mapTextureSprites = _CompoundSprite.GetTextureSprites();
+    for (auto _item : _mapTextureSprites)
+    {
+        std::string _sTexture = _item.first;
+
+        _vectorTexturesToLoad.push_back(_sTexture);
+    }
+    //========================================
+
+    _vectorTexturesToLoad.push_back("InGame");
+
+    //========================================
+    /*std::string _sFileNameToTest = "InGame";
     std::string _sXmlPathToTest = stl_helper::Format("assets_plz_ignore/%s.xml", _sFileNameToTest.c_str());
     std::string _sPngPathToTest = stl_helper::Format("assets_plz_ignore/%s.png", _sFileNameToTest.c_str());
 
-
     std::string _sSpriteSheetXml = FileHelper::GetFileContentsString(_sXmlPathToTest);
 
-    CSpriteSheet _SpriteSheet;
-    _SpriteSheet.ParseXML(_sSpriteSheetXml);
+    {
+        CSpriteSheet _SpriteSheet;
+        _SpriteSheet.ParseXML(_sSpriteSheetXml);
+        mapSpriteSheets["InGame"] = _SpriteSheet;
+    }*/
+    //========================================
+
+    //========================================
+    for (auto& _sTexture : _vectorTexturesToLoad)
+    {
+        std::string _sXmlPath = stl_helper::Format("assets_plz_ignore/%s.xml", _sTexture.c_str());
+        std::string _sSpriteSheetXml = FileHelper::GetFileContentsString(_sXmlPath);
+
+        CSpriteSheet _SpriteSheet;
+        _SpriteSheet.ParseXML(_sSpriteSheetXml);
+        mapSpriteSheets[_sTexture] = _SpriteSheet;
+    }
+    //========================================
 
 
     //---------- Setup GLFW
@@ -254,16 +300,49 @@ int main()
     //========================================
 
 
-    int width = 0, height = 0;
-    auto _pData = FileHelper::LoadPng(_sPngPathToTest.c_str(), width, height);
+    //========================================
+    std::map<std::string, uint32_t> mapTextureNameId;
 
-    uint32_t _uTestTexture = 0;
-    glGenTextures(1, &_uTestTexture);
-    glBindTexture(GL_TEXTURE_2D, _uTestTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _pData->data());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    for (auto &_sTexture : _vectorTexturesToLoad)
+    {
+        mapTextureNameId[_sTexture] = 0;
+
+        std::string _sTexturePath = stl_helper::Format("assets_plz_ignore/%s.png", _sTexture.c_str());
+
+        int width = 0, height = 0;
+        auto _pData = FileHelper::LoadPng(_sTexturePath.c_str(), width, height);
+
+        if (_pData != nullptr && _pData->size() > 0)
+        {
+            uint32_t &_uTextureId = mapTextureNameId[_sTexture];
+            glGenTextures(1, &_uTextureId);
+            glBindTexture(GL_TEXTURE_2D, _uTextureId);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _pData->data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        else
+        {
+            // fail
+        }
+    }
+    //========================================
+
+    //========================================
+    /*uint32_t _uTestTexture = 0;
+    {
+        int width = 0, height = 0;
+        auto _pData = FileHelper::LoadPng(_sPngPathToTest.c_str(), width, height);
+
+        glGenTextures(1, &_uTestTexture);
+        glBindTexture(GL_TEXTURE_2D, _uTestTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _pData->data());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }*/
+    //========================================
 
 
     // Our state
@@ -360,6 +439,7 @@ int main()
             // Pre-defined layout for dockspace
             //========================================
             ImGuiID _RootDockSpaceId = ImGui::GetID("MainDockSpace");
+            ImGuiID dock_id_bottom = 0;
             if (ImGui::DockBuilderGetNode(_RootDockSpaceId) == nullptr)
             {
                 ImVec2 dockspace_size(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
@@ -370,7 +450,7 @@ int main()
                 ImGui::DockBuilderAddNode(_RootDockSpaceId, ImGuiDockNodeFlags_DockSpace); // Add empty node
                 ImGui::DockBuilderSetNodeSize(dock_main_id, dockspace_size);
 
-                ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.15f, NULL, &dock_main_id);
+                dock_id_bottom = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.15f, NULL, &dock_main_id);
 
                 std::string const& viewport_window_id = "viewport";
                 ImGui::DockBuilderDockWindow(viewport_window_id.c_str(), dock_main_id);
@@ -380,6 +460,12 @@ int main()
 
                 std::string const& sprites_window_id = "sprites";
                 ImGui::DockBuilderDockWindow(sprites_window_id.c_str(), dock_id_bottom);
+
+                for (auto& _SpriteSheetItem : mapSpriteSheets)
+                {
+                    std::string _window_id = stl_helper::Format("sprites - %s", _SpriteSheetItem.first.c_str());
+                    ImGui::DockBuilderDockWindow(_window_id.c_str(), dock_id_bottom);
+                }
 
                 ImGui::DockBuilderFinish(_RootDockSpaceId);
             }
@@ -418,11 +504,18 @@ int main()
                 ImGui::End();
 
                 // Sprites
-                if (ImGui::Begin("sprites", nullptr))
+                for (auto &_SpriteSheetItem : mapSpriteSheets)
                 {
-                    ui::SpriteSheetWindow(_SpriteSheet, _uTestTexture);
+                    auto _itTexNameId = mapTextureNameId.find(_SpriteSheetItem.first);
+                    if (_itTexNameId != mapTextureNameId.end())
+                    {
+                        if (ImGui::Begin(stl_helper::Format("sprites - %s", _SpriteSheetItem.first.c_str()).c_str(), nullptr))
+                        {
+                            ui::SpriteSheetWindow(_SpriteSheetItem.second, _itTexNameId->second);
+                        }
+                        ImGui::End();
+                    }
                 }
-                ImGui::End();
             }
             //========================================
 
