@@ -3,7 +3,6 @@
 
 #define GLEW_STATIC
 
-#include "gl_render_helper.hpp"
 #include "utility/file_helper.hpp"
 #include "utility/stl_helper.hpp"
 
@@ -24,42 +23,48 @@
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 
+#include "gl_render_helper.hpp"
+
 // stl
 #include <iostream>
 #include <string>
 
 
+static const char* vertex_shader_text = 
+R"(
+    #version 330 core
 
-static const struct
-{
-    float x, y;
-    float r, g, b;
-} vertices[3] =
-{
-    { -0.6f, -0.4f, 1.f, 0.f, 0.f },
-    {  0.6f, -0.4f, 0.f, 1.f, 0.f },
-    {   0.f,  0.6f, 0.f, 0.f, 1.f }
-};
+    uniform mat4 MVP;
 
-static const char* vertex_shader_text =
-"#version 110\n"
-"uniform mat4 MVP;\n"
-"attribute vec3 vCol;\n"
-"attribute vec2 vPos;\n"
-"varying vec3 color;\n"
-"void main()\n"
-"{\n"
-"    gl_Position = MVP * vec4(vPos, 0.0, 1.0);\n"
-"    color = vCol;\n"
-"}\n";
+    attribute vec4 vCol;
+    attribute vec3 vPos;
+    attribute vec2 uv;
 
-static const char* fragment_shader_text =
-"#version 110\n"
-"varying vec3 color;\n"
-"void main()\n"
-"{\n"
-"    gl_FragColor = vec4(color, 1.0);\n"
-"}\n";
+    varying vec4 color;
+    varying vec2 uv_out;
+
+    void main()
+    {
+        gl_Position = MVP * vec4(vPos, 1.0);
+        color = vCol;
+        uv_out = uv;
+    };
+)";
+
+static const char* fragment_shader_text = 
+R"(
+    #version 330 core
+
+    uniform sampler2D image;
+
+    varying vec4 color;
+    varying vec2 uv_out;
+
+    void main()
+    {
+        gl_FragColor = color * texture(image, uv_out);
+    };
+)";
 
 
 
@@ -223,12 +228,8 @@ int main()
 
     // NOTE: OpenGL error checks have been omitted for brevity
     //========================================
-    GLuint vertex_buffer, vertex_shader, fragment_shader, program;
+    GLuint vertex_shader, fragment_shader, program;
     GLint mvp_location, vpos_location, vcol_location;
-
-    glGenBuffers(1, &vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
@@ -243,16 +244,27 @@ int main()
     glAttachShader(program, fragment_shader);
     glLinkProgram(program);
 
-    mvp_location = glGetUniformLocation(program, "MVP");
-    vpos_location = glGetAttribLocation(program, "vPos");
-    vcol_location = glGetAttribLocation(program, "vCol");
+    GLint program_linked;
+    glGetProgramiv(program, GL_LINK_STATUS, &program_linked);
+    if (program_linked != GL_TRUE)
+    {
+        GLsizei ignored;
+        char vertex_log[4096];
+        char fragment_log[4096];
+        char program_log[4096];
 
-    glEnableVertexAttribArray(vpos_location);
-    glVertexAttribPointer(vpos_location, 2, GL_FLOAT, GL_FALSE,
-        sizeof(vertices[0]), (void*)0);
-    glEnableVertexAttribArray(vcol_location);
-    glVertexAttribPointer(vcol_location, 3, GL_FLOAT, GL_FALSE,
-        sizeof(vertices[0]), (void*)(sizeof(float) * 2));
+        glGetShaderInfoLog(vertex_shader, 4096, &ignored, vertex_log);
+        glGetShaderInfoLog(fragment_shader, 4096, &ignored, fragment_log);
+        glGetProgramInfoLog(program, 4096, &ignored, program_log);
+
+        std::string message = stl_helper::Format("%s\n%s\n%s", vertex_log, fragment_log, program_log);
+
+
+        assert(false && message.c_str());
+    }
+
+
+    mvp_location = glGetUniformLocation(program, "MVP");
     //========================================
 
 
@@ -386,6 +398,9 @@ int main()
             glClearColor(0.25f, 0.25f, 0.25f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
+
             float _fRatio = ViewportData.m_uWidth / (float)ViewportData.m_uHeight;
 
             glm::mat4 m, p, mvp;
@@ -396,7 +411,18 @@ int main()
 
             glUseProgram(program);
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&(mvp.operator[](0).x));
-            glDrawArrays(GL_TRIANGLES, 0, 3);
+
+            if (mapSpriteSheets.size() > 0)
+            {
+                CSpriteSheet const& _SpriteSheet = mapSpriteSheets.begin()->second;
+                std::string _sTexture = mapSpriteSheets.begin()->first;
+
+                CSpriteSheet::SSpriteCell const& _Cell = _SpriteSheet.GetSpriteData().begin()->second;
+                gl_render_helper::DrawSprite(_Cell,
+                                             CCompoundSprite::SActorState(),
+                                             program, 
+                                             mapTextureNameId[_sTexture]);
+            }
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //========================================
