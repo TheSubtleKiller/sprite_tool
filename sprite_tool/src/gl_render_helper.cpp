@@ -2,6 +2,7 @@
 #include "spritesheet.hpp"
 #include "compound_sprite.hpp"
 
+#define GLEW_STATIC
 #include "GL/glew.h"
 
 #include <array>
@@ -14,37 +15,115 @@ namespace gl_render_helper
 					uint32_t _uShaderProgram,
 					uint32_t _uTexture)
 	{
+		if (_ActorState.m_bShown == false)
+		{
+			return;
+		}
+
 		struct SPosition
 		{
 			float xyz[3];
 		};
 		struct SColour
 		{
-			uint8_t rgba[4];
+			uint32_t colour;
 		};
 		struct STexCoord
 		{
 			float uv[2];
 		};
 
+		float _fHalfW = static_cast<float>(_SpriteCell.w) * 0.5f;
+		float _fHalfH = static_cast<float>(_SpriteCell.h) * 0.5f;
+
+		float _fMinX = 0.0f;
+		float _fMinY = 0.0f;
+		float _fMaxX = static_cast<float>(_SpriteCell.w);
+		float _fMaxY = static_cast<float>(_SpriteCell.h);
+
+		switch (static_cast<CCompoundSprite::Alignment>(_ActorState.m_uAlignmentX))
+		{
+			case CCompoundSprite::Alignment::Centre:
+			{
+				_fMinX = -_fHalfW;
+				_fMaxX = _fHalfW;
+				break;
+			}
+			case CCompoundSprite::Alignment::Left:
+			{
+				break;
+			}
+			case CCompoundSprite::Alignment::Right:
+			{
+				_fMinX = -static_cast<float>(_SpriteCell.w);
+				_fMaxX = 0.0f;
+				break;
+			}
+			default:
+				break;
+		}
+
+		switch (static_cast<CCompoundSprite::Alignment>(_ActorState.m_uAlignmentY))
+		{
+			case CCompoundSprite::Alignment::Centre:
+			{
+				_fMinY = -_fHalfH;
+				_fMaxY = _fHalfH;
+				break;
+			}
+			case CCompoundSprite::Alignment::Top:
+			{
+				break;
+			}
+			case CCompoundSprite::Alignment::Bottom:
+			{
+				_fMinY = -static_cast<float>(_SpriteCell.h);
+				_fMaxY = 0.0f;
+				break;
+			}
+			default:
+				break;
+		}
+
+		float _fScaleX = _ActorState.m_fScaleX;
+		float _fScaleY = _ActorState.m_fScaleY;
+		if (_ActorState.m_uFlip & static_cast<uint32_t>(CCompoundSprite::Flip::FlipX))
+		{
+			_fScaleX *= -1;
+		}
+		if (_ActorState.m_uFlip & static_cast<uint32_t>(CCompoundSprite::Flip::FlipY))
+		{
+			_fScaleY *= -1;
+		}
+
+		_fMinX *= _fScaleX;
+		_fMinY *= _fScaleY;
+		_fMaxX *= _fScaleX;
+		_fMaxY *= _fScaleY;
+
+		_fMinX += _ActorState.m_fPosX * 2;
+		_fMinY += _ActorState.m_fPosY * 2;
+		_fMaxX += _ActorState.m_fPosX * 2;
+		_fMaxY += _ActorState.m_fPosY * 2;
+
 		SPosition _arrayPos[6] = 
 		{
-			{-1, -1, 0.0f},
-			{1, -1, 0.0f},
-			{1, 1, 0.0f},
-			{1, 1, 0.0f},
-			{-1, 1, 0.0f},
-			{-1, -1, 0.0f},
+			{_fMinX, _fMinY, 0.0f},
+			{_fMaxX, _fMinY, 0.0f},
+			{_fMaxX, _fMaxY, 0.0f},
+			{_fMaxX, _fMaxY, 0.0f},
+			{_fMinX, _fMaxY, 0.0f},
+			{_fMinX, _fMinY, 0.0f},
 		};
 
 		SColour _arrayCol[6] =
 		{
-			{255, 255, 255, 255},
-			{255, 255, 255, 255},
-			{255, 255, 255, 255},
-			{255, 255, 255, 255},
-			{255, 255, 255, 255},
-			{255, 255, 255, 255},
+			_ActorState.m_uColour,
+			_ActorState.m_uColour,
+			_ActorState.m_uColour,
+			_ActorState.m_uColour,
+			_ActorState.m_uColour,
+			_ActorState.m_uColour,
 		};
 
 		STexCoord _arrayUV[6] =
