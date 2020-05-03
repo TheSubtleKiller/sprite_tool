@@ -1,7 +1,8 @@
 // sprite_tool.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#define GLEW_STATIC
+
+#include "sprite_tool.hpp"
 
 #include "utility/file_helper.hpp"
 #include "utility/stl_helper.hpp"
@@ -18,6 +19,7 @@
 #include "imgui_impl/imgui_impl_opengl3.h"
 
 // gl stuff
+#define GLEW_STATIC
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
@@ -30,7 +32,7 @@
 #include <string>
 
 
-static const char* vertex_shader_text = 
+static const char* s_ShaderVert = 
 R"(
     #version 330 core
 
@@ -51,7 +53,7 @@ R"(
     };
 )";
 
-static const char* fragment_shader_text = 
+static const char* s_ShaderFrag =
 R"(
     #version 330 core
 
@@ -72,12 +74,6 @@ void error_callback(int error, const char* description)
 {
     char buffer[1024] = { 0 };
     printf_s(buffer, "Error: %hs\n", description);
-}
-
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
 void SetupViewportFramebuffer(uint32_t& _uFBO, uint32_t & _uTexture, uint32_t & _uRBO, uint32_t const _uWidth, uint32_t const _uHeight)
@@ -131,14 +127,18 @@ void SetupViewportFramebuffer(uint32_t& _uFBO, uint32_t & _uTexture, uint32_t & 
     //========================================
 }
 
-int main()
+int CSpriteTool::Run()
 {
     std::map<std::string, CSpriteSheet> mapSpriteSheets;
 
 
-
     //========================================
-    std::string _sJsonPathToTest = stl_helper::Format("assets_plz_ignore/JSON/%s.json", "monkey_city_icon");
+    //std::string _sJsonName = "monkey_city_icon.json";
+    //std::string _sJsonName = "mix_n_match_icon.json";
+    //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
+    std::string _sJsonName = "LevelDefinitions/castle/castle.props";
+    //std::string _sJsonName = "BloonSprites/blastapopoulos_01.json";
+    std::string _sJsonPathToTest = stl_helper::Format("assets_plz_ignore/JSON/%s", _sJsonName.c_str());
     std::string _sJson = FileHelper::GetFileContentsString(_sJsonPathToTest);
 
     CCompoundSprite _CompoundSprite;
@@ -160,23 +160,9 @@ int main()
     _vectorTexturesToLoad.push_back("InGame");
 
     //========================================
-    /*std::string _sFileNameToTest = "InGame";
-    std::string _sXmlPathToTest = stl_helper::Format("assets_plz_ignore/%s.xml", _sFileNameToTest.c_str());
-    std::string _sPngPathToTest = stl_helper::Format("assets_plz_ignore/%s.png", _sFileNameToTest.c_str());
-
-    std::string _sSpriteSheetXml = FileHelper::GetFileContentsString(_sXmlPathToTest);
-
-    {
-        CSpriteSheet _SpriteSheet;
-        _SpriteSheet.ParseXML(_sSpriteSheetXml);
-        mapSpriteSheets["InGame"] = _SpriteSheet;
-    }*/
-    //========================================
-
-    //========================================
     for (auto& _sTexture : _vectorTexturesToLoad)
     {
-        std::string _sXmlPath = stl_helper::Format("assets_plz_ignore/%s.xml", _sTexture.c_str());
+        std::string _sXmlPath = stl_helper::Format("assets_plz_ignore/textures/tablet/%s.xml", _sTexture.c_str());
         std::string _sSpriteSheetXml = FileHelper::GetFileContentsString(_sXmlPath);
 
         CSpriteSheet _SpriteSheet;
@@ -207,7 +193,23 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    glfwSetWindowUserPointer(window, this);
+    
+    //---------- set key press callback func
+    auto key_callback = [](GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+    };
     glfwSetKeyCallback(window, key_callback);
+
+    //---------- set mouse scroll press callback func
+    auto scroll_callback = [](GLFWwindow* window, double xoffset, double yoffset)
+    {
+        CSpriteTool* _pSpriteTool = static_cast<CSpriteTool*>(glfwGetWindowUserPointer(window));
+        _pSpriteTool->SetMouseScroll(xoffset, yoffset);
+    };
+    glfwSetScrollCallback(window, scroll_callback);
 
     glfwMakeContextCurrent(window);
 
@@ -229,14 +231,14 @@ int main()
     // NOTE: OpenGL error checks have been omitted for brevity
     //========================================
     GLuint vertex_shader, fragment_shader, program;
-    GLint mvp_location, vpos_location, vcol_location;
+    GLint mvp_location;
 
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
+    glShaderSource(vertex_shader, 1, &s_ShaderVert, nullptr);
     glCompileShader(vertex_shader);
 
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
+    glShaderSource(fragment_shader, 1, &s_ShaderFrag, nullptr);
     glCompileShader(fragment_shader);
 
     program = glCreateProgram();
@@ -244,23 +246,23 @@ int main()
     glAttachShader(program, fragment_shader);
     glLinkProgram(program);
 
-    GLint program_linked;
-    glGetProgramiv(program, GL_LINK_STATUS, &program_linked);
-    if (program_linked != GL_TRUE)
+    GLint _iProgramLinked;
+    glGetProgramiv(program, GL_LINK_STATUS, &_iProgramLinked);
+    if (_iProgramLinked != GL_TRUE)
     {
-        GLsizei ignored;
-        char vertex_log[4096];
-        char fragment_log[4096];
-        char program_log[4096];
+        GLsizei _iIgnored;
+        size_t const c_uLogSize = 4096;
+        char _LogVertex[c_uLogSize];
+        char _LogFragment[c_uLogSize];
+        char _LogProgram[c_uLogSize];
 
-        glGetShaderInfoLog(vertex_shader, 4096, &ignored, vertex_log);
-        glGetShaderInfoLog(fragment_shader, 4096, &ignored, fragment_log);
-        glGetProgramInfoLog(program, 4096, &ignored, program_log);
+        glGetShaderInfoLog(vertex_shader, c_uLogSize, &_iIgnored, _LogVertex);
+        glGetShaderInfoLog(fragment_shader, c_uLogSize, &_iIgnored, _LogFragment);
+        glGetProgramInfoLog(program, c_uLogSize, &_iIgnored, _LogProgram);
 
-        std::string message = stl_helper::Format("%s\n%s\n%s", vertex_log, fragment_log, program_log);
+        std::string _sMessage = stl_helper::Format("%s\n%s\n%s", _LogVertex, _LogFragment, _LogProgram);
 
-
-        assert(false && message.c_str());
+        assert(false && _sMessage.c_str());
     }
 
 
@@ -319,17 +321,19 @@ int main()
     {
         mapTextureNameId[_sTexture] = 0;
 
-        std::string _sTexturePath = stl_helper::Format("assets_plz_ignore/%s.png", _sTexture.c_str());
+        std::string _sTexturePath = stl_helper::Format("assets_plz_ignore/textures/tablet/%s", _sTexture.c_str());
 
         int width = 0, height = 0;
-        auto _pData = FileHelper::LoadPng(_sTexturePath.c_str(), width, height);
+        auto _ImageData = FileHelper::LoadImage(_sTexturePath.c_str(), width, height);
 
-        if (_pData != nullptr && _pData->size() > 0)
+        if (_ImageData.m_pData != nullptr && _ImageData.m_pData->size() > 0)
         {
+            uint32_t _eChannels = (_ImageData.m_uChannels == 4)? GL_RGBA : GL_RGB;
+
             uint32_t &_uTextureId = mapTextureNameId[_sTexture];
             glGenTextures(1, &_uTextureId);
             glBindTexture(GL_TEXTURE_2D, _uTextureId);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _pData->data());
+            glTexImage2D(GL_TEXTURE_2D, 0, _eChannels, width, height, 0, _eChannels, GL_UNSIGNED_BYTE, _ImageData.m_pData->data());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
@@ -337,23 +341,9 @@ int main()
         else
         {
             // fail
+            assert(false);
         }
     }
-    //========================================
-
-    //========================================
-    /*uint32_t _uTestTexture = 0;
-    {
-        int width = 0, height = 0;
-        auto _pData = FileHelper::LoadPng(_sPngPathToTest.c_str(), width, height);
-
-        glGenTextures(1, &_uTestTexture);
-        glBindTexture(GL_TEXTURE_2D, _uTestTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, _pData->data());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }*/
     //========================================
 
 
@@ -364,6 +354,8 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        SetMouseScroll(0.0, 0.0);
+
         glfwPollEvents();
 
 
@@ -403,16 +395,51 @@ int main()
 
             float _fRatio = ViewportData.m_uWidth / (float)ViewportData.m_uHeight;
 
+            m_fViewPortScale += m_dMouseScrollY * 0.01f;
+            m_fViewPortScale = std::fmaxf(m_fViewPortScale, 0.01f);
+
+            float _fScale = m_fViewPortScale * 0.01f;
+
             glm::mat4 m, p, mvp;
             m = glm::mat4(1.0f);
-            m = glm::rotate(m, (float)glfwGetTime(), glm::vec3(0, 0, 1));
+            m = glm::scale(m, glm::vec3(_fScale, _fScale, _fScale));
+            m = glm::scale(m, glm::vec3(1, -1, 1));
+            //m = glm::rotate(m, (float)glfwGetTime(), glm::vec3(0, 0, 1));
             p = glm::ortho(-_fRatio, _fRatio, -1.f, 1.f, 1.f, -1.f);
             mvp = p * m;
 
             glUseProgram(program);
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&(mvp.operator[](0).x));
 
-            if (mapSpriteSheets.size() > 0)
+            auto const &_mapActors = _CompoundSprite.GetActors();
+            for (auto const & _itActor : _mapActors)
+            {
+                CCompoundSprite::SActor const& _Actor = _itActor.second;
+                switch (static_cast<CCompoundSprite::SActor::Type>(_Actor.m_uType))
+                {
+                    case CCompoundSprite::SActor::Type::Sprite:
+                    {
+                        std::string _sTexture =_CompoundSprite.GetTextureForSprite(_Actor.m_sSprite);
+                        mapTextureNameId[_sTexture];
+
+                        CSpriteSheet const &_SpriteSheet = mapSpriteSheets[_sTexture];
+                        auto _mapSprites = _SpriteSheet.GetSpriteData();
+                        CSpriteSheet::SSpriteCell const& _Cell = _mapSprites[_Actor.m_sSprite];
+
+                        gl_render_helper::DrawSprite(_Cell,
+                                                     _Actor.m_State,
+                                                     program,
+                                                     mapTextureNameId[_sTexture]);
+                        break;
+                    }
+                    case CCompoundSprite::SActor::Type::Compound:
+                    {
+                        break;
+                    }
+                }
+            }
+
+            /*if (mapSpriteSheets.size() > 0)
             {
                 CSpriteSheet const& _SpriteSheet = mapSpriteSheets.begin()->second;
                 std::string _sTexture = mapSpriteSheets.begin()->first;
@@ -422,7 +449,7 @@ int main()
                                              CCompoundSprite::SActorState(),
                                              program, 
                                              mapTextureNameId[_sTexture]);
-            }
+            }*/
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //========================================
