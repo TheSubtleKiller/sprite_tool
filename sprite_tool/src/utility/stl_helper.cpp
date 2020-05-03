@@ -1,6 +1,8 @@
 
 #include "stl_helper.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <string>
 
 //========================================
@@ -36,6 +38,16 @@ namespace stl_helper
 		{
 			return s_sError;
 		}
+
+		return _sOutput;
+	}
+
+	std::string ToLower(std::string const & _sText)
+	{
+		std::string _sOutput = _sText;		
+
+		std::transform(_sOutput.begin(), _sOutput.end(), _sOutput.begin(),
+					   [](unsigned char c) { return std::tolower(c); });
 
 		return _sOutput;
 	}
