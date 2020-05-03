@@ -10,6 +10,22 @@
 class CCompoundSprite
 {
 public:
+	enum class Alignment
+	{
+		Centre	= 0,
+		Left	= 1,
+		Right	= 2,
+		Top		= 3,
+		Bottom	= 4,
+		Point	= 5,
+	};
+
+	enum class Flip : uint8_t
+	{
+		Default = 0,
+		FlipX	= 1<<0,
+		FlipY	= 1<<1,
+	};
 
 	struct SActorState
 	{
@@ -37,6 +53,12 @@ public:
 
 	struct SActor
 	{
+		enum class Type
+		{
+			Sprite = 1,
+			Compound = 2,
+		};
+
 		SActorState m_State;
 
 		std::string m_sSprite;
@@ -54,6 +76,22 @@ public:
 	};
 
 	void ParseJSON(std::string const& _sJSON);
+
+	std::string const & GetTextureForSprite(std::string const& _sSprite)
+	{
+		static std::string s_Empty;
+		for (auto &itTexture : m_mapTextureSprites)
+		{
+			for (auto sprite : itTexture.second)
+			{
+				if (sprite == _sSprite)
+				{
+					return itTexture.first;
+				}
+			}
+		}
+		return s_Empty;
+	}
 
 	std::map<uint32_t, SActor> const& GetActors() const { return m_mapActors; }
 	std::map<std::string, std::set<std::string>> const& GetTextureSprites() const { return m_mapTextureSprites; }

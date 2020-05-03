@@ -50,6 +50,8 @@ CCompoundSprite::SActorState ParseActorState(rapidjson::Value const &_root)
 
 void CCompoundSprite::ParseJSON(std::string const& _sJSON)
 {
+    assert(_sJSON.empty() == false);
+
     using namespace rapidjson;
 
     Document _doc;
