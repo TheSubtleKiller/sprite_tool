@@ -32,7 +32,7 @@ public:
 		uint32_t m_uAlignmentX = 0;
 		uint32_t m_uAlignmentY = 0;
 
-		float m_fAlpha = 0.0f;
+		float m_fAlpha = 1.0f;
 		float m_fAngle = 0.0f;
 
 		union {
@@ -50,6 +50,28 @@ public:
 
 		bool m_bShown = true;
 	};
+
+	static SActorState InterpolateActorState(SActorState const & _First, SActorState const & _Second, float const & _fInterp)
+	{
+		SActorState _Output;
+
+		_Output.m_uAlignmentX = _First.m_uAlignmentX;
+		_Output.m_uAlignmentY = _First.m_uAlignmentY;
+		_Output.m_fAlpha = _First.m_fAlpha + (_Second.m_fAlpha - _First.m_fAlpha) * _fInterp;
+		_Output.m_fAngle = _First.m_fAngle + (_Second.m_fAngle - _First.m_fAngle) * _fInterp;
+		for (uint32_t i = 0u; i < 4u; ++i)
+		{
+			_Output.m_RGBA[i] = static_cast<uint8_t>(_First.m_RGBA[i] + ((_Second.m_RGBA[i] - _First.m_RGBA[i]) * _fInterp));
+		}
+		_Output.m_uFlip = _First.m_uFlip;
+		_Output.m_fPosX = _First.m_fPosX + (_Second.m_fPosX - _First.m_fPosX) * _fInterp;
+		_Output.m_fPosY = _First.m_fPosY + (_Second.m_fPosY - _First.m_fPosY) * _fInterp;
+		_Output.m_fScaleX = _First.m_fScaleX + (_Second.m_fScaleX - _First.m_fScaleX) * _fInterp;
+		_Output.m_fScaleY = _First.m_fScaleY + (_Second.m_fScaleY - _First.m_fScaleY) * _fInterp;
+		_Output.m_bShown = _First.m_bShown;
+
+		return _Output;
+	}
 
 	struct SActor
 	{
@@ -93,9 +115,13 @@ public:
 		return s_Empty;
 	}
 
+	SActorState GetStateForActorAtTime(uint32_t const _uActorId, float const _fTime);
+
 	std::map<uint32_t, SActor> const& GetActors() const { return m_mapActors; }
 	std::map<std::string, std::set<std::string>> const& GetTextureSprites() const { return m_mapTextureSprites; }
 	std::map<uint32_t, std::vector<STimelineFrame>> const& GetTimelines() const { return m_mapTimelineStates; }
+
+	float const GetStageLength() const { return m_fStageLength; }
 
 protected:
 

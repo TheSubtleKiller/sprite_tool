@@ -15,15 +15,6 @@ namespace ui
     {
         ImTextureID const _ImTexId = (ImTextureID)uint64_t(_uTexId);
 
-        float _fMult = fminf(_vec2ButtonWH.x / _SpriteCell.w, _vec2ButtonWH.y / _SpriteCell.h);
-        ImVec2 _vec2ImageWH(_SpriteCell.w * _fMult,
-                            _SpriteCell.h * _fMult);
-
-        ImVec2 const _vec2UV0 = ImVec2(_SpriteCell.m_fMinX,
-                                       _SpriteCell.m_fMinY);
-        ImVec2 const _vec2UV1 = ImVec2(_SpriteCell.m_fMaxX,
-                                       _SpriteCell.m_fMaxY);
-
         //========================================
         ImGui::BeginGroup();
         {
@@ -44,6 +35,16 @@ namespace ui
             // Draw the sprite
             if (_ImTexId)
             {
+                float _fMult = fminf(_vec2ButtonWH.x / _SpriteCell.w, _vec2ButtonWH.y / _SpriteCell.h);
+
+                ImVec2 _vec2ImageWH(_SpriteCell.w * _fMult,
+                                    _SpriteCell.h * _fMult);
+
+                ImVec2 const _vec2UV0 = ImVec2(_SpriteCell.m_fMinX,
+                                               _SpriteCell.m_fMinY);
+                ImVec2 const _vec2UV1 = ImVec2(_SpriteCell.m_fMaxX,
+                                               _SpriteCell.m_fMaxY);
+
                 ImGui::SetCursorPos(_vec2ImagePos);
                 ImGui::Image(_ImTexId, _vec2ImageWH, _vec2UV0, _vec2UV1);
             }
@@ -111,7 +112,7 @@ namespace ui
         ImGui::Separator();
 
         {
-            auto _mapSpriteData = _SpriteSheet.GetSpriteData();
+            auto const & _mapSpriteData = _SpriteSheet.GetSpriteData();
 
             ImVec2 const c_vec2ButtonWH(s_fIconSize, s_fIconSize);
 

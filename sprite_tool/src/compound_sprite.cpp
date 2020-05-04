@@ -15,17 +15,26 @@ CCompoundSprite::SActorState ParseActorState(rapidjson::Value const &_root)
 
     using namespace rapidjson;
 
-    Value const& _valAlignment = _root["Alignment"];
-    if (_valAlignment.IsArray() && _valAlignment.Size() == 2)
+    if (_root.HasMember("Alignment"))
     {
-        _ActorState.m_uAlignmentX = _valAlignment[0].GetUint();
-        _ActorState.m_uAlignmentY = _valAlignment[1].GetUint();
+        Value const& _valAlignment = _root["Alignment"];
+        if (_valAlignment.IsArray() && _valAlignment.Size() == 2)
+        {
+            _ActorState.m_uAlignmentX = _valAlignment[0].GetUint();
+            _ActorState.m_uAlignmentY = _valAlignment[1].GetUint();
+        }
     }
 
-    _ActorState.m_fAlpha = _root["Alpha"].GetFloat();
+    if (_root.HasMember("Alpha"))
+    {
+        _ActorState.m_fAlpha = _root["Alpha"].GetFloat();
+    }
     _ActorState.m_fAngle = _root["Angle"].GetFloat();
 
-    _ActorState.m_uColour = _root["Colour"].GetUint();
+    if (_root.HasMember("Colour"))
+    {
+        _ActorState.m_uColour = _root["Colour"].GetUint();
+    }
 
     _ActorState.m_uFlip = _root["Flip"].GetUint();
 
@@ -58,19 +67,25 @@ void CCompoundSprite::ParseJSON(std::string const& _sJSON)
     _doc.Parse(_sJSON.c_str());
 
     // Read alignment
-    Value& _valAlignment = _doc["Alignment"];
-    if (_valAlignment.IsArray() && _valAlignment.Size() == 2)
+    if (_doc.HasMember("Alignment"))
     {
-        m_uAlignmentX = _valAlignment[0].GetUint();
-        m_uAlignmentY = _valAlignment[1].GetUint();
+        Value& _valAlignment = _doc["Alignment"];
+        if (_valAlignment.IsArray() && _valAlignment.Size() == 2)
+        {
+            m_uAlignmentX = _valAlignment[0].GetUint();
+            m_uAlignmentY = _valAlignment[1].GetUint();
+        }
     }
 
     // Read Point
-    Value& _valPoint = _doc["Point"];
-    if (_valPoint.IsArray() && _valPoint.Size() == 2)
+    if (_doc.HasMember("Point"))
     {
-        m_fPointX = _valPoint[0].GetFloat();
-        m_fPointY = _valPoint[1].GetFloat();
+        Value& _valPoint = _doc["Point"];
+        if (_valPoint.IsArray() && _valPoint.Size() == 2)
+        {
+            m_fPointX = _valPoint[0].GetFloat();
+            m_fPointY = _valPoint[1].GetFloat();
+        }
     }
 
     //---------- Read stage options
@@ -78,7 +93,10 @@ void CCompoundSprite::ParseJSON(std::string const& _sJSON)
     if (_valStageOptions.IsObject())
     {
         m_fStageLength = _valStageOptions["StageLength"].GetFloat();
-        m_iVersion = _valStageOptions["Version"].GetInt();
+        if (_valStageOptions.HasMember("Version"))
+        {
+            m_iVersion = _valStageOptions["Version"].GetInt();
+        }
 
         Value& _valSpriteInfo = _valStageOptions["SpriteInfo"];
 
@@ -150,5 +168,76 @@ void CCompoundSprite::ParseJSON(std::string const& _sJSON)
     }
 
     return;
+}
+//========================================
+
+//========================================
+CCompoundSprite::SActorState CCompoundSprite::GetStateForActorAtTime(uint32_t const _uActorId, float const _fTime)
+{
+    SActorState _CurrentState;
+
+    // Find actor for id
+    auto _itActor = m_mapActors.find(_uActorId);
+    if (_itActor == m_mapActors.end())
+    {
+        // No actor found, return default state
+        return _CurrentState;
+    }
+    else
+    {
+        // Set current state to actor initial values
+        _CurrentState = _itActor->second.m_State;
+    }
+
+    // get timeline for sprite
+    auto _itTimeline = m_mapTimelineStates.find(_uActorId);
+    if (_itTimeline != m_mapTimelineStates.end())
+    {
+        auto const& _vectorTimeline = _itTimeline->second;
+
+        // search for prev/next keyframe on timeline for given time
+        STimelineFrame const* _pPrev = nullptr;
+        STimelineFrame const* _pNext = nullptr;
+
+        for (auto const &_Frame : _vectorTimeline)
+        {
+            if (_Frame.m_fTime <= _fTime)
+            {
+                _pPrev = &_Frame;
+            }
+
+            if (_Frame.m_fTime >= _fTime)
+            {
+                _pNext = &_Frame;
+                break;
+            }
+        }
+
+        // If we found a previous and next keyframe for given time
+        if (_pNext != nullptr && 
+            _pPrev != nullptr)
+        {
+            if (_pNext == _pPrev)
+            {
+                _CurrentState = _pNext->m_State;
+            }
+            else
+            {
+                _CurrentState = InterpolateActorState(_pPrev->m_State, _pNext->m_State, (_fTime - _pPrev->m_fTime) / (_pNext->m_fTime - _pPrev->m_fTime));
+            }
+        }
+        // If we only found a previous keyframe
+        else if (_pPrev != nullptr) 
+        {
+            _CurrentState = _pPrev->m_State;
+        }
+        // If we only found a next keyframe
+        else if (_pNext != nullptr)
+        {
+            _CurrentState = _pNext->m_State;
+        }
+    }
+
+    return _CurrentState;
 }
 //========================================

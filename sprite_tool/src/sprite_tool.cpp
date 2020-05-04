@@ -136,8 +136,9 @@ int CSpriteTool::Run()
     //std::string _sJsonName = "monkey_city_icon.json";
     //std::string _sJsonName = "mix_n_match_icon.json";
     //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
-    std::string _sJsonName = "LevelDefinitions/castle/castle.props";
+    //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
     //std::string _sJsonName = "BloonSprites/blastapopoulos_01.json";
+    std::string _sJsonName = "BloonSprites/bfb_undamaged.json";
     std::string _sJsonPathToTest = stl_helper::Format("assets_plz_ignore/JSON/%s", _sJsonName.c_str());
     std::string _sJson = FileHelper::GetFileContentsString(_sJsonPathToTest);
 
@@ -411,6 +412,9 @@ int CSpriteTool::Run()
             glUseProgram(program);
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&(mvp.operator[](0).x));
 
+            static float s_fTime = 0.0f;
+            s_fTime = fmodf( (float)glfwGetTime(),  _CompoundSprite.GetStageLength() );
+
             auto const &_mapActors = _CompoundSprite.GetActors();
             for (auto const & _itActor : _mapActors)
             {
@@ -423,13 +427,19 @@ int CSpriteTool::Run()
                         mapTextureNameId[_sTexture];
 
                         CSpriteSheet const &_SpriteSheet = mapSpriteSheets[_sTexture];
-                        auto _mapSprites = _SpriteSheet.GetSpriteData();
-                        CSpriteSheet::SSpriteCell const& _Cell = _mapSprites[_Actor.m_sSprite];
+                        auto const & _mapSprites = _SpriteSheet.GetSpriteData();
+                        auto _itSprite = _mapSprites.find(_Actor.m_sSprite);
+                        if (_itSprite != _mapSprites.end())
+                        {
+                            CSpriteSheet::SSpriteCell const& _Cell = _itSprite->second;
 
-                        gl_render_helper::DrawSprite(_Cell,
-                                                     _Actor.m_State,
-                                                     program,
-                                                     mapTextureNameId[_sTexture]);
+                            CCompoundSprite::SActorState _ActorState = _CompoundSprite.GetStateForActorAtTime(_Actor.m_uID, s_fTime);
+
+                            gl_render_helper::DrawSprite(_Cell,
+                                                         _ActorState,
+                                                         program,
+                                                         mapTextureNameId[_sTexture]);
+                        }
                         break;
                     }
                     case CCompoundSprite::SActor::Type::Compound:
