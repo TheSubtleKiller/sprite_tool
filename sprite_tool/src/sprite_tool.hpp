@@ -15,4 +15,7 @@ protected:
 	double m_dMouseScrollY = 0.0;
 
 	float m_fViewPortScale = 1.0f;
+
+	bool m_bAnimate = true;
+	float m_fAnimationSpeedMult = 1.0f;
 };

@@ -138,7 +138,9 @@ int CSpriteTool::Run()
     //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
     //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
     //std::string _sJsonName = "BloonSprites/blastapopoulos_01.json";
-    std::string _sJsonName = "BloonSprites/bfb_undamaged.json";
+    //std::string _sJsonName = "BloonSprites/bfb_undamaged.json";
+    //std::string _sJsonName = "WeaponSprites/Explosion.json";
+    std::string _sJsonName = "BloonSprites/boss_death_explosion_01.json"; 
     std::string _sJsonPathToTest = stl_helper::Format("assets_plz_ignore/JSON/%s", _sJsonName.c_str());
     std::string _sJson = FileHelper::GetFileContentsString(_sJsonPathToTest);
 
@@ -165,6 +167,8 @@ int CSpriteTool::Run()
     {
         std::string _sXmlPath = stl_helper::Format("assets_plz_ignore/textures/tablet/%s.xml", _sTexture.c_str());
         std::string _sSpriteSheetXml = FileHelper::GetFileContentsString(_sXmlPath);
+
+        assert(_sSpriteSheetXml.empty() == false);
 
         CSpriteSheet _SpriteSheet;
         _SpriteSheet.ParseXML(_sSpriteSheetXml);
@@ -353,8 +357,13 @@ int CSpriteTool::Run()
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     bool _bDockSpaceOpen = true;
 
+    double _dPrevTime = 0.0;
+
     while (!glfwWindowShouldClose(window))
     {
+        double _dDeltaTime = std::fmin(0.05, glfwGetTime() - _dPrevTime);
+        _dPrevTime = glfwGetTime();
+
         SetMouseScroll(0.0, 0.0);
 
         glfwPollEvents();
@@ -405,7 +414,6 @@ int CSpriteTool::Run()
             m = glm::mat4(1.0f);
             m = glm::scale(m, glm::vec3(_fScale, _fScale, _fScale));
             m = glm::scale(m, glm::vec3(1, -1, 1));
-            //m = glm::rotate(m, (float)glfwGetTime(), glm::vec3(0, 0, 1));
             p = glm::ortho(-_fRatio, _fRatio, -1.f, 1.f, 1.f, -1.f);
             mvp = p * m;
 
@@ -413,8 +421,12 @@ int CSpriteTool::Run()
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&(mvp.operator[](0).x));
 
             static float s_fTime = 0.0f;
-            s_fTime = fmodf( (float)glfwGetTime(),  _CompoundSprite.GetStageLength() );
+            if (m_bAnimate)
+            {
+                s_fTime = fmodf(s_fTime + float(_dDeltaTime) * m_fAnimationSpeedMult, _CompoundSprite.GetStageLength());
+            }
 
+            // Draw the compound sprite
             auto const &_mapActors = _CompoundSprite.GetActors();
             for (auto const & _itActor : _mapActors)
             {
@@ -448,18 +460,6 @@ int CSpriteTool::Run()
                     }
                 }
             }
-
-            /*if (mapSpriteSheets.size() > 0)
-            {
-                CSpriteSheet const& _SpriteSheet = mapSpriteSheets.begin()->second;
-                std::string _sTexture = mapSpriteSheets.begin()->first;
-
-                CSpriteSheet::SSpriteCell const& _Cell = _SpriteSheet.GetSpriteData().begin()->second;
-                gl_render_helper::DrawSprite(_Cell,
-                                             CCompoundSprite::SActorState(),
-                                             program, 
-                                             mapTextureNameId[_sTexture]);
-            }*/
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //========================================
@@ -553,6 +553,10 @@ int CSpriteTool::Run()
                 // Main viewport window where we view the scene
                 if (ImGui::Begin("viewport", nullptr, 0))
                 {
+                    ImGui::Checkbox("Animate", &m_bAnimate);
+                    ImGui::SameLine();
+                    ImGui::SliderFloat("Animation Speed", &m_fAnimationSpeedMult, 0.0f, 10.0f);
+
                     ImTextureID id = (ImTextureID)uint64_t(ViewportData.m_uTexture);
                     vec2ViewportWindowSize = ImGui::GetContentRegionAvail();
                     ImGui::Image(id, vec2ViewportWindowSize, ImVec2(0, 1), ImVec2(1, 0));
