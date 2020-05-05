@@ -405,7 +405,7 @@ int CSpriteTool::Run()
 
             float _fRatio = ViewportData.m_uWidth / (float)ViewportData.m_uHeight;
 
-            m_fViewPortScale += m_dMouseScrollY * 0.01f;
+            m_fViewPortScale += static_cast<float>(m_dMouseScrollY) * 0.01f;
             m_fViewPortScale = std::fmaxf(m_fViewPortScale, 0.01f);
 
             float _fScale = m_fViewPortScale * 0.01f;
