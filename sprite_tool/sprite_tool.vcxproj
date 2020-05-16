@@ -47,6 +47,7 @@
     <ClInclude Include="src\imgui_impl\imgui_impl_opengl3.h" />
     <ClInclude Include="src\spritesheet.hpp" />
     <ClInclude Include="src\sprite_tool.hpp" />
+    <ClInclude Include="src\ui\imgui_style.hpp" />
     <ClInclude Include="src\ui\ui.hpp" />
     <ClInclude Include="src\utility\file_helper.hpp" />
     <ClInclude Include="src\utility\stl_helper.hpp" />
@@ -138,12 +139,13 @@
       <PreprocessorDefinitions>TIXML_USE_TICPP;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>src;include/jsoncpp;include/zlib;include/libpng;src/imgui;include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libjpeg_9.1_MDd_D.lib;tiny_xml_d.lib;jsoncpp.lib;zlibstatic.lib;libpng16_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>nfd_d.lib;libjpeg_9.1_MDd_D.lib;tiny_xml_d.lib;jsoncpp.lib;zlibstatic.lib;libpng16_static.lib;opengl32.lib;glew32s.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

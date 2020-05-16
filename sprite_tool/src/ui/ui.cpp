@@ -101,7 +101,7 @@ namespace ui
 
 	void SpriteSheetWindow(class CSpriteSheet const& _SpriteSheet, uint32_t const _uTexId)
 	{
-        static float s_fIconSize = 64.0f;
+        static float s_fIconSize = 32.0f;
         static bool s_bShowNames = false;
         ImGui::SliderFloat("Icon Size", &s_fIconSize, 32.0f, 1024.0f);
 

@@ -8,6 +8,9 @@
 #include "libjpeg/jpeglib.h"
 #include "libjpeg/jerror.h"
 
+// native file dialog
+#include "nfd/nfd.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -17,6 +20,30 @@
 //========================================
 namespace FileHelper
 {
+    std::string OpenFileDialog(std::string const& _sExt, std::string const& _sDefaultPath /*= ""*/)
+    {
+        std::string _sPathResult;
+
+        nfdchar_t* _pOutPath = nullptr;
+        nfdresult_t _Result = NFD_OpenDialog(_sExt.c_str(), _sDefaultPath.c_str(), &_pOutPath);
+
+        if (_Result == NFD_OKAY)
+        {
+            _sPathResult = std::string(_pOutPath);
+            free(_pOutPath);
+        }
+        else if (_Result == NFD_CANCEL)
+        {
+            printf("User cancelled.\n");
+        }
+        else
+        {
+            printf("Error: %s\n", NFD_GetError());
+        }
+
+        return _sPathResult;
+    }
+
 	std::string GetFileContentsString(std::string const& _sFilePath)
 	{
         std::string _sContents;

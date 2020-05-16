@@ -17,6 +17,7 @@
 #include "imgui/imgui_internal.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
+#include "ui/imgui_style.hpp"
 
 // gl stuff
 #define GLEW_STATIC
@@ -284,8 +285,7 @@ int CSpriteTool::Run()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
 
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
+    // style
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
@@ -521,19 +521,12 @@ int CSpriteTool::Run()
                 std::string const& timeline_window_id = "timeline";
                 ImGui::DockBuilderDockWindow(timeline_window_id.c_str(), dock_id_bottom);
 
-                std::string const& sprites_window_id = "sprites";
+                std::string const& sprites_window_id = "Sprite Sheets";
                 ImGui::DockBuilderDockWindow(sprites_window_id.c_str(), dock_id_bottom);
-
-                for (auto& _SpriteSheetItem : mapSpriteSheets)
-                {
-                    std::string _window_id = stl_helper::Format("sprites - %s", _SpriteSheetItem.first.c_str());
-                    ImGui::DockBuilderDockWindow(_window_id.c_str(), dock_id_bottom);
-                }
 
                 ImGui::DockBuilderFinish(_RootDockSpaceId);
             }
             //========================================
-
 
             // Begin the DockSpace in current window
             //========================================
@@ -543,8 +536,15 @@ int CSpriteTool::Run()
                 // DockSpace menu bar
                 if (ImGui::BeginMenuBar())
                 {
-                    if (ImGui::BeginMenu("Docking"))
+                    if (ImGui::BeginMenu("Styles"))
                     {
+                        for (auto _sItem : s_vectorStyles)
+                        {
+                            if (ImGui::MenuItem(_sItem.c_str()))
+                            {
+                                ChooseStyle(_sItem);
+                            }
+                        }
                         ImGui::EndMenu();
                     }
                     ImGui::EndMenuBar();
@@ -570,19 +570,28 @@ int CSpriteTool::Run()
                 }
                 ImGui::End();
 
-                // Sprites
-                for (auto &_SpriteSheetItem : mapSpriteSheets)
+                // Sprite sheet sprites
+                if (ImGui::Begin("Sprite Sheets", nullptr))
                 {
-                    auto _itTexNameId = mapTextureNameId.find(_SpriteSheetItem.first);
-                    if (_itTexNameId != mapTextureNameId.end())
+                    ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+                    if (ImGui::BeginTabBar("sprite_sheets_tab_bar", tab_bar_flags))
                     {
-                        if (ImGui::Begin(stl_helper::Format("sprites - %s", _SpriteSheetItem.first.c_str()).c_str(), nullptr))
+                        for (auto& _SpriteSheetItem : mapSpriteSheets)
                         {
-                            ui::SpriteSheetWindow(_SpriteSheetItem.second, _itTexNameId->second);
+                            auto _itTexNameId = mapTextureNameId.find(_SpriteSheetItem.first);
+                            if (_itTexNameId != mapTextureNameId.end())
+                            {
+                                if (ImGui::BeginTabItem(_SpriteSheetItem.first.c_str()))
+                                {
+                                    ui::SpriteSheetWindow(_SpriteSheetItem.second, _itTexNameId->second);
+                                    ImGui::EndTabItem();
+                                }
+                            }
                         }
-                        ImGui::End();
+                        ImGui::EndTabBar();
                     }
                 }
+                ImGui::End();
             }
             //========================================
 
