@@ -5,8 +5,28 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
+#include "utility/file_helper.hpp"
+#include "utility/stl_helper.hpp"
+
 #include <iostream>
 #include <string>
+#include <stdlib.h>
+
+
+//========================================
+CCompoundSprite::SActor * CCompoundSprite::GetActorById(uint32_t _uId)
+{
+    for (auto & _Actor : m_vectorActors)
+    {
+        if (_Actor.m_uID == _uId)
+        {
+            return &_Actor;
+        }
+    }
+
+    return nullptr;
+}
+//========================================
 
 //========================================
 CCompoundSprite::SActorState ParseActorState(rapidjson::Value const &_root)
@@ -57,7 +77,55 @@ CCompoundSprite::SActorState ParseActorState(rapidjson::Value const &_root)
     return _ActorState;
 }
 
-void CCompoundSprite::ParseJSON(std::string const& _sJSON)
+void CCompoundSprite::ParseJSONFileRecursive(std::string const& _sFile,
+                                             std::map<std::string, tSharedCompoundSprite>& _mapCompounds)
+{
+    std::string _sAbsPath = FileHelper::GetAbsolutePath(_sFile);
+
+    // If file not already loaded in our map
+    if (_mapCompounds.find(_sAbsPath) == _mapCompounds.end())
+    {
+        // create and parse
+        tSharedCompoundSprite _pCompound(new CCompoundSprite());
+        _pCompound->ParseJSONFile(_sAbsPath);
+
+        // add to map
+        _mapCompounds[_sAbsPath] = _pCompound;
+
+        // find any sub-compounds in this one
+        auto& _vectorActors = _pCompound->GetActors();
+        for (auto &_Actor : _vectorActors)
+        {
+            if (_Actor.m_uType == static_cast<uint32_t>(SActor::Type::Compound))
+            {
+                // path should be relative, so modify current path to find new compound
+                std::string _sSubPath = _sAbsPath;
+
+                size_t _uPos = _sSubPath.find_last_of("/");
+                if (_uPos == std::string::npos)
+                {
+                    _uPos = _sSubPath.find_last_of("\\");
+                }
+                _sSubPath.replace(_uPos+1, std::string::npos, _Actor.m_sSprite);
+
+                _Actor.m_sSubCompoundPath = _sSubPath;
+
+                ParseJSONFileRecursive(_sSubPath, _mapCompounds);
+            }
+        }
+    }
+}
+
+void CCompoundSprite::ParseJSONFile(std::string const& _sFile)
+{
+    std::string _sAbsPath = FileHelper::GetAbsolutePath(_sFile);
+
+    std::string _sJson = FileHelper::GetFileContentsString(_sAbsPath);
+
+    ParseJSONData(_sJson);
+}
+
+void CCompoundSprite::ParseJSONData(std::string const& _sJSON)
 {
     assert(_sJSON.empty() == false);
 
@@ -130,7 +198,7 @@ void CCompoundSprite::ParseJSON(std::string const& _sJSON)
             _Actor.m_uType = _valActor["type"].GetUint();
             _Actor.m_uID = _valActor["uid"].GetUint();
 
-            m_mapActors[_Actor.m_uID] = _Actor;
+            m_vectorActors.push_back(_Actor);
         }
     }
 
@@ -177,8 +245,8 @@ CCompoundSprite::SActorState CCompoundSprite::GetStateForActorAtTime(uint32_t co
     SActorState _CurrentState;
 
     // Find actor for id
-    auto _itActor = m_mapActors.find(_uActorId);
-    if (_itActor == m_mapActors.end())
+    auto _pActor = GetActorById(_uActorId);
+    if (_pActor == nullptr)
     {
         // No actor found, return default state
         return _CurrentState;
@@ -186,7 +254,7 @@ CCompoundSprite::SActorState CCompoundSprite::GetStateForActorAtTime(uint32_t co
     else
     {
         // Set current state to actor initial values
-        _CurrentState = _itActor->second.m_State;
+        _CurrentState = _pActor->m_State;
     }
 
     // get timeline for sprite

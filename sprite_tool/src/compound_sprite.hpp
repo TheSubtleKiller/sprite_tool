@@ -5,6 +5,14 @@
 #include <set>
 #include <vector>
 #include <string>
+#include <memory>
+
+
+// forward declarations
+class CSpriteSheet;
+class CCompoundSprite;
+
+typedef std::shared_ptr<CCompoundSprite> tSharedCompoundSprite;
 
 //========================================
 class CCompoundSprite
@@ -75,7 +83,7 @@ public:
 
 	struct SActor
 	{
-		enum class Type
+		enum class Type : uint32_t
 		{
 			Sprite = 1,
 			Compound = 2,
@@ -88,6 +96,8 @@ public:
 		uint32_t m_uType = 1;	// 1 : sprite, 2 : compound-sprite
 
 		uint32_t m_uID = 0;
+
+		std::string m_sSubCompoundPath;
 	};
 
 	struct STimelineFrame
@@ -97,7 +107,11 @@ public:
 		float m_fTime = 0.0f;
 	};
 
-	void ParseJSON(std::string const& _sJSON);
+	static void ParseJSONFileRecursive(std::string const& _sFile, 
+									   std::map<std::string, tSharedCompoundSprite> &_mapCompounds);
+
+	void ParseJSONFile(std::string const& _sFile);
+	void ParseJSONData(std::string const& _sJSON);
 
 	std::string const & GetTextureForSprite(std::string const& _sSprite)
 	{
@@ -117,7 +131,8 @@ public:
 
 	SActorState GetStateForActorAtTime(uint32_t const _uActorId, float const _fTime);
 
-	std::map<uint32_t, SActor> const& GetActors() const { return m_mapActors; }
+	std::vector<SActor> & GetActors() { return m_vectorActors; }
+	SActor * GetActorById(uint32_t _uId);
 	std::map<std::string, std::set<std::string>> const& GetTextureSprites() const { return m_mapTextureSprites; }
 	std::map<uint32_t, std::vector<STimelineFrame>> const& GetTimelines() const { return m_mapTimelineStates; }
 
@@ -125,13 +140,16 @@ public:
 
 protected:
 
+	std::vector< std::shared_ptr<CSpriteSheet> > m_vectorSpriteSheets;
+	//std::shared_ptr<CSpriteSheet> m_pSpriteSheet;
+
 	uint32_t m_uAlignmentX = 0;
 	uint32_t m_uAlignmentY = 0;
 
 	float m_fPointX = 0.0f;
 	float m_fPointY = 0.0f;
 
-	std::map<uint32_t, SActor> m_mapActors;
+	std::vector<SActor> m_vectorActors;
 	std::map<std::string, std::set<std::string>> m_mapTextureSprites;
 	std::map<uint32_t, std::vector<STimelineFrame>> m_mapTimelineStates;
 
