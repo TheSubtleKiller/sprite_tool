@@ -5,12 +5,16 @@
 #define GLEW_STATIC
 #include "GL/glew.h"
 
+#include "glm/glm.hpp"
+#include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
+
 #include <array>
 
-//========================================
+//======================================== 
 namespace gl_render_helper
 {
-	void DrawSprite(CSpriteSheet::SSpriteCell const& _SpriteCell, 
+	void DrawSprite(glm::mat4 &_matModelView,
+					CSpriteSheet::SSpriteCell const& _SpriteCell, 
 					CCompoundSprite::SActorState const& _ActorState,
 					uint32_t _uShaderProgram,
 					uint32_t _uTexture)
@@ -85,8 +89,8 @@ namespace gl_render_helper
 				break;
 		}
 
-		float _fScaleX = _ActorState.m_fScaleX;
-		float _fScaleY = _ActorState.m_fScaleY;
+		float _fScaleX = _ActorState.m_fScaleX * _SpriteCell.m_fTextureScale;
+		float _fScaleY = _ActorState.m_fScaleY * _SpriteCell.m_fTextureScale;
 		if (_ActorState.m_uFlip & static_cast<uint32_t>(CCompoundSprite::Flip::FlipX))
 		{
 			_fScaleX *= -1;
@@ -101,19 +105,22 @@ namespace gl_render_helper
 		_fMaxX *= _fScaleX;
 		_fMaxY *= _fScaleY;
 
-		_fMinX += _ActorState.m_fPosX * 2;
-		_fMinY += _ActorState.m_fPosY * 2;
-		_fMaxX += _ActorState.m_fPosX * 2;
-		_fMaxY += _ActorState.m_fPosY * 2;
+		_fMinX += _ActorState.m_fPosX;
+		_fMinY += _ActorState.m_fPosY;
+		_fMaxX += _ActorState.m_fPosX;
+		_fMaxY += _ActorState.m_fPosY;
 
-		SPosition _arrayPos[6] = 
+		glm::vec4 _vec4Min = _matModelView * glm::vec4(_fMinX, _fMinY, 0.0f, 1.0f);
+		glm::vec4 _vec4Max = _matModelView * glm::vec4(_fMaxX, _fMaxY, 0.0f, 1.0f);
+
+		SPosition _arrayPos[6] =
 		{
-			{_fMinX, _fMinY, 0.0f},
-			{_fMaxX, _fMinY, 0.0f},
-			{_fMaxX, _fMaxY, 0.0f},
-			{_fMaxX, _fMaxY, 0.0f},
-			{_fMinX, _fMaxY, 0.0f},
-			{_fMinX, _fMinY, 0.0f},
+			{_vec4Min.x, _vec4Min.y, 0.0f},
+			{_vec4Max.x, _vec4Min.y, 0.0f},
+			{_vec4Max.x, _vec4Max.y, 0.0f},
+			{_vec4Max.x, _vec4Max.y, 0.0f},
+			{_vec4Min.x, _vec4Max.y, 0.0f},
+			{_vec4Min.x, _vec4Min.y, 0.0f},
 		};
 
 		SColour _arrayCol[6] =
