@@ -103,4 +103,22 @@ void CSpriteSheet::ParseXML(std::string const& _sXML)
 		assert(false);
 	}
 }
+
+void CSpriteSheet::SetTextureRes(TextureRes _eRes)
+{
+	m_eResolution = _eRes;
+
+	float _fScale = 1.0f;
+	switch (m_eResolution)
+	{
+		case CSpriteSheet::TextureRes::Low: {_fScale = 1.0f; break; }
+		case CSpriteSheet::TextureRes::High: {_fScale = 0.5f; break; }
+		case CSpriteSheet::TextureRes::Ultra: {_fScale = 0.25f; break; }
+	}
+
+	for (auto &_itSpriteData : m_mapSpriteData)
+	{
+		_itSpriteData.second.m_fTextureScale = _fScale;
+	}
+}
 //========================================

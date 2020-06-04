@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <memory>
 
 // Forward declarations
 namespace ticpp
@@ -14,6 +15,13 @@ namespace ticpp
 class CSpriteSheet
 {
 public:
+	enum class TextureRes
+	{
+		Low = 0,
+		High = 1,
+		Ultra = 2,
+	};
+
 	struct SSpriteCell
 	{
 		std::string m_sName;
@@ -24,6 +32,8 @@ public:
 
 		float m_fMinX = 0.0f, m_fMinY = 0.0f;
 		float m_fMaxX = 0.0f, m_fMaxY = 0.0f;
+
+		float m_fTextureScale = 1.0f;	// scale to apply to get back to base (Low) sprite size
 
 		void CalculateNormalisedValues(uint32_t const _uTexW, uint32_t const _uTexH)
 		{
@@ -41,6 +51,8 @@ public:
 
 	std::map<std::string, SSpriteCell> const& GetSpriteData() const { return m_mapSpriteData; }
 
+	void SetTextureRes(TextureRes _eRes);
+
 protected:
 	void ParseCell(ticpp::Element* _pElemCell);
 	void ParseAnimation(ticpp::Element* _pElemAnim);
@@ -52,5 +64,9 @@ protected:
 
 	uint32_t m_uTexWidth = 0;
 	uint32_t m_uTexHeight = 0;
+
+	TextureRes m_eResolution = TextureRes::Low;
 };
+
+typedef std::shared_ptr<CSpriteSheet> tSharedSpriteSheet;
 //========================================
