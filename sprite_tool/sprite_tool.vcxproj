@@ -32,6 +32,7 @@
     <ClCompile Include="src\sprite_tool.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
     <ClCompile Include="src\utility\file_helper.cpp" />
+    <ClCompile Include="src\utility\file_helper_windows_garbage.cpp" />
     <ClCompile Include="src\utility\stl_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
