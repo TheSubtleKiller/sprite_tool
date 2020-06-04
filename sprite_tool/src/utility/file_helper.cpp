@@ -5,6 +5,7 @@
 
 #include "libpng/png.h"
 
+#include <memory>
 #include "libjpeg/jpeglib.h"
 #include "libjpeg/jerror.h"
 
@@ -16,6 +17,7 @@
 #include <string>
 #include <cassert>
 #include <sys/stat.h>
+
 
 //========================================
 namespace FileHelper
@@ -120,9 +122,9 @@ namespace FileHelper
         "jpng",
     };
 
-    SImageData LoadImage(std::string const& _sFilePath,
-                         int32_t& _iWidth,
-                         int32_t& _iHeight)
+    SImageData LoadImageFromFile(std::string const& _sFilePath,
+                                 int32_t& _iWidth,
+                                 int32_t& _iHeight)
     {
         std::string _sExtension;
 
@@ -165,9 +167,9 @@ namespace FileHelper
                 {
                     if (FileExists(_sFilePath + "." + _sExt))
                     {
-                        return LoadImage(_sFilePath + "." + _sExt,
-                                         _iWidth,
-                                         _iHeight);
+                        return FileHelper::LoadImageFromFile(_sFilePath + "." + _sExt,
+                                                             _iWidth,
+                                                             _iHeight);
                     }
                 }
             }

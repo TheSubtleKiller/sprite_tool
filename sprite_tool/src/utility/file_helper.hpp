@@ -6,6 +6,8 @@
 //========================================
 namespace FileHelper
 {
+    std::string GetAbsolutePath(std::string const& _sPath);
+
     std::string OpenFileDialog(std::string const& _sExt, std::string const& _sDefaultPath = "");
 
 	std::string GetFileContentsString(std::string const &_sFilePath);
@@ -19,9 +21,9 @@ namespace FileHelper
         uint32_t m_uChannels = 0;
     };
 
-    SImageData LoadImage(std::string const& _sFilePath,
-                         int32_t& _iWidth,
-                         int32_t& _iHeight);
+    SImageData LoadImageFromFile(std::string const& _sFilePath,
+                                 int32_t& _iWidth,
+                                 int32_t& _iHeight);
 
     SImageData LoadPNG(uint8_t* _pData,
                        int32_t & _iWidth,
