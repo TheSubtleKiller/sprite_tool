@@ -24,14 +24,14 @@
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
-#include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
+#include "glm/gtc/matrix_transform.hpp" // glm::translate, glm::rotate, glm::scale, glm::perspective
 
 #include "gl_render_helper.hpp"
 
 // stl
 #include <iostream>
 #include <string>
-
+#include <functional>
 
 static const char* s_ShaderVert = 
 R"(
@@ -128,56 +128,144 @@ void SetupViewportFramebuffer(uint32_t& _uFBO, uint32_t & _uTexture, uint32_t & 
     //========================================
 }
 
-int CSpriteTool::Run()
+void GetTexturesFromCompound(tSharedCompoundSprite &_pCompound, std::vector<std::string> & _vectorTextures)
 {
-    std::map<std::string, CSpriteSheet> mapSpriteSheets;
-
-
-    //========================================
-    //std::string _sJsonName = "monkey_city_icon.json";
-    //std::string _sJsonName = "mix_n_match_icon.json";
-    //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
-    //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
-    //std::string _sJsonName = "BloonSprites/blastapopoulos_01.json";
-    //std::string _sJsonName = "BloonSprites/bfb_undamaged.json";
-    //std::string _sJsonName = "WeaponSprites/Explosion.json";
-    std::string _sJsonName = "BloonSprites/boss_death_explosion_01.json"; 
-    std::string _sJsonPathToTest = stl_helper::Format("assets_plz_ignore/JSON/%s", _sJsonName.c_str());
-    std::string _sJson = FileHelper::GetFileContentsString(_sJsonPathToTest);
-
-    CCompoundSprite _CompoundSprite;
-    _CompoundSprite.ParseJSON(_sJson);
-    //========================================
-
-
-    //========================================
-    std::vector<std::string> _vectorTexturesToLoad;
-    auto _mapTextureSprites = _CompoundSprite.GetTextureSprites();
+    auto _mapTextureSprites = _pCompound->GetTextureSprites();
     for (auto _item : _mapTextureSprites)
     {
-        std::string _sTexture = _item.first;
+        _vectorTextures.push_back(_item.first);
+    }
+}
 
-        _vectorTexturesToLoad.push_back(_sTexture);
+bool CSpriteTool::OpenJSONFile(std::string const& _sPath)
+{
+    std::string _sAbsPath = FileHelper::GetAbsolutePath(_sPath);
+
+    // Parse the compounds
+    CCompoundSprite::ParseJSONFileRecursive(_sAbsPath, m_mapCompounds);
+
+    // Failed to load any compounds?
+    if (m_mapCompounds.size() == 0)
+    {
+        fprintf(stdout, "Failed to load an compounds?.\n");
+        return false;
+    }
+
+    std::string _sTextureParentFolder = FileHelper::PickFolderDialog(_sPath);
+    if (_sTextureParentFolder.empty())
+    {
+        fprintf(stdout, "No texture folder supplied.\n");
+        return false;
+    }
+
+    // Get required textures from compounds
+    //========================================
+    std::vector<std::string> _vectorTexturesToLoad;
+    for (auto& _Item : m_mapCompounds)
+    {
+        GetTexturesFromCompound(_Item.second, _vectorTexturesToLoad);
     }
     //========================================
 
-    _vectorTexturesToLoad.push_back("InGame");
-
+    // Load required spritesheets
     //========================================
-    for (auto& _sTexture : _vectorTexturesToLoad)
+    LoadSpriteSheets(_sTextureParentFolder, _vectorTexturesToLoad, m_mapSpriteSheets);
+    //========================================
+
+    // Load textures into opengl
+    //========================================
+    LoadTextures(_sTextureParentFolder, _vectorTexturesToLoad, m_mapTextureNameId);
+    //========================================
+
+    return true;
+}
+
+std::vector<SActorInstance> CSpriteTool::BuildActorInstances(std::shared_ptr<CCompoundSprite>& _pCompound)
+{
+    std::vector<SActorInstance> _vectorInstances;
+
+    auto const& _vectorActors = _pCompound->GetActors();
+    for (auto const& _Actor : _vectorActors)
     {
-        std::string _sXmlPath = stl_helper::Format("assets_plz_ignore/textures/tablet/%s.xml", _sTexture.c_str());
+        _vectorInstances.emplace_back();
+        SActorInstance &_ActorInstance = _vectorInstances.back();
+        _ActorInstance.m_pCompound = _pCompound;
+        _ActorInstance.m_uActorId = _Actor.m_uID;
+
+        switch (static_cast<CCompoundSprite::SActor::Type>(_Actor.m_uType))
+        {
+            // Do nothing, already have what we need above
+            case CCompoundSprite::SActor::Type::Sprite:
+            {
+                break;
+            }
+
+            //Recurse!
+            case CCompoundSprite::SActor::Type::Compound:
+            {
+                auto _itSubCompound = m_mapCompounds.find(_Actor.m_sSubCompoundPath);
+
+                if (_itSubCompound != m_mapCompounds.end())
+                {
+                    _ActorInstance.m_vectorActors = BuildActorInstances(_itSubCompound->second);
+                }
+                break;
+            }
+        }
+    }
+
+    return _vectorInstances;
+}
+
+void CSpriteTool::LoadSpriteSheets(std::string const& _sParentFolder, std::vector<std::string> const& _vectorTextures, std::map<std::string, CSpriteSheet>& _mapSpriteSheets)
+{
+    for (auto& _sTexture : _vectorTextures)
+    {
+        std::string _sXmlPath = stl_helper::Format("%s/%s.xml", _sParentFolder.c_str(), _sTexture.c_str());
         std::string _sSpriteSheetXml = FileHelper::GetFileContentsString(_sXmlPath);
 
         assert(_sSpriteSheetXml.empty() == false);
 
         CSpriteSheet _SpriteSheet;
         _SpriteSheet.ParseXML(_sSpriteSheetXml);
-        mapSpriteSheets[_sTexture] = _SpriteSheet;
+        _SpriteSheet.SetTextureRes(CSpriteSheet::TextureRes::High);
+        _mapSpriteSheets[_sTexture] = _SpriteSheet;
     }
-    //========================================
+}
 
+void CSpriteTool::LoadTextures(std::string const& _sParentFolder, std::vector<std::string> const& _vectorTextures, std::map<std::string, uint32_t>& _mapTextureNameId)
+{
+    for (auto& _sTexture : _vectorTextures)
+    {
+        m_mapTextureNameId[_sTexture] = 0;
 
+        std::string _sTexturePath = stl_helper::Format("%s/%s", _sParentFolder.c_str(), _sTexture.c_str());
+
+        int width = 0, height = 0;
+        auto _ImageData = FileHelper::LoadImageFromFile(_sTexturePath.c_str(), width, height);
+
+        if (_ImageData.m_pData != nullptr && _ImageData.m_pData->size() > 0)
+        {
+            uint32_t _eChannels = (_ImageData.m_uChannels == 4) ? GL_RGBA : GL_RGB;
+
+            uint32_t& _uTextureId = _mapTextureNameId[_sTexture];
+            glGenTextures(1, &_uTextureId);
+            glBindTexture(GL_TEXTURE_2D, _uTextureId);
+            glTexImage2D(GL_TEXTURE_2D, 0, _eChannels, width, height, 0, _eChannels, GL_UNSIGNED_BYTE, _ImageData.m_pData->data());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        else
+        {
+            // fail
+            assert(false);
+        }
+    }
+}
+
+int CSpriteTool::Run()
+{
     //---------- Setup GLFW
     //========================================
 
@@ -232,7 +320,6 @@ int CSpriteTool::Run()
     }
     fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
     //========================================
-
 
     // NOTE: OpenGL error checks have been omitted for brevity
     //========================================
@@ -318,38 +405,23 @@ int CSpriteTool::Run()
     ImVec2 vec2ViewportWindowSize(800, 600);
     //========================================
 
-
-    //========================================
-    std::map<std::string, uint32_t> mapTextureNameId;
-
-    for (auto &_sTexture : _vectorTexturesToLoad)
     {
-        mapTextureNameId[_sTexture] = 0;
-
-        std::string _sTexturePath = stl_helper::Format("assets_plz_ignore/textures/tablet/%s", _sTexture.c_str());
-
-        int width = 0, height = 0;
-        auto _ImageData = FileHelper::LoadImage(_sTexturePath.c_str(), width, height);
-
-        if (_ImageData.m_pData != nullptr && _ImageData.m_pData->size() > 0)
+        //========================================
         {
-            uint32_t _eChannels = (_ImageData.m_uChannels == 4)? GL_RGBA : GL_RGB;
+            //std::string _sJsonName = "monkey_city_icon.json";
+            //std::string _sJsonName = "mix_n_match_icon.json";
+            //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
+            //std::string _sJsonName = "LevelDefinitions/castle/castle.props";
+            std::string _sJsonName = "BloonSprites/blastapopoulos_01.json";
+            //std::string _sJsonName = "BloonSprites/blastapopoulos_prop.json";
+            //std::string _sJsonName = "BloonSprites/bfb_undamaged.json";
+            //std::string _sJsonName = "WeaponSprites/Explosion.json";
+            //std::string _sJsonName = "BloonSprites/boss_death_explosion_01.json";
 
-            uint32_t &_uTextureId = mapTextureNameId[_sTexture];
-            glGenTextures(1, &_uTextureId);
-            glBindTexture(GL_TEXTURE_2D, _uTextureId);
-            glTexImage2D(GL_TEXTURE_2D, 0, _eChannels, width, height, 0, _eChannels, GL_UNSIGNED_BYTE, _ImageData.m_pData->data());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            //m_sOpenFile = stl_helper::Format("assets_plz_ignore/JSON/%s", _sJsonName.c_str());
         }
-        else
-        {
-            // fail
-            assert(false);
-        }
+        //========================================
     }
-    //========================================
 
 
     // Our state
@@ -358,6 +430,7 @@ int CSpriteTool::Run()
     bool _bDockSpaceOpen = true;
 
     double _dPrevTime = 0.0;
+
 
     while (!glfwWindowShouldClose(window))
     {
@@ -392,6 +465,27 @@ int CSpriteTool::Run()
         //========================================
 
 
+        // Handle selecting new file to open
+        //========================================
+        if (m_sOpenFile.empty() == false)
+        {
+            bool _bRetVal = OpenJSONFile(m_sOpenFile);
+
+            // If success, build actors for rendering
+            if (_bRetVal == true)
+            {
+                auto _pRootCompound = m_mapCompounds.begin()->second;
+                m_vectorActorInstances = BuildActorInstances(_pRootCompound);
+            }
+
+            m_sOpenFile = "";
+        }
+        //========================================
+
+
+        std::string _sIndent;
+        std::string _sTempHierarchy;
+
         // Draw our scene to the FBO
         //========================================
         glBindFramebuffer(GL_FRAMEBUFFER, ViewportData.m_uFrameBuffer);
@@ -420,45 +514,87 @@ int CSpriteTool::Run()
             glUseProgram(program);
             glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*)&(mvp.operator[](0).x));
 
-            static float s_fTime = 0.0f;
-            if (m_bAnimate)
-            {
-                s_fTime = fmodf(s_fTime + float(_dDeltaTime) * m_fAnimationSpeedMult, _CompoundSprite.GetStageLength());
-            }
 
-            // Draw the compound sprite
-            auto const &_mapActors = _CompoundSprite.GetActors();
-            for (auto const & _itActor : _mapActors)
+            if (m_vectorActorInstances.size() > 0)
             {
-                CCompoundSprite::SActor const& _Actor = _itActor.second;
-                switch (static_cast<CCompoundSprite::SActor::Type>(_Actor.m_uType))
+                if (m_bAnimate)
                 {
-                    case CCompoundSprite::SActor::Type::Sprite:
-                    {
-                        std::string _sTexture =_CompoundSprite.GetTextureForSprite(_Actor.m_sSprite);
-                        mapTextureNameId[_sTexture];
-
-                        CSpriteSheet const &_SpriteSheet = mapSpriteSheets[_sTexture];
-                        auto const & _mapSprites = _SpriteSheet.GetSpriteData();
-                        auto _itSprite = _mapSprites.find(_Actor.m_sSprite);
-                        if (_itSprite != _mapSprites.end())
-                        {
-                            CSpriteSheet::SSpriteCell const& _Cell = _itSprite->second;
-
-                            CCompoundSprite::SActorState _ActorState = _CompoundSprite.GetStateForActorAtTime(_Actor.m_uID, s_fTime);
-
-                            gl_render_helper::DrawSprite(_Cell,
-                                                         _ActorState,
-                                                         program,
-                                                         mapTextureNameId[_sTexture]);
-                        }
-                        break;
-                    }
-                    case CCompoundSprite::SActor::Type::Compound:
-                    {
-                        break;
-                    }
+                    m_fTime += float(_dDeltaTime) * m_fAnimationSpeedMult;
                 }
+
+                // create matrix stack
+                std::vector<glm::mat4> _vectorMatrixStack;
+                // push initial identity matrix
+                _vectorMatrixStack.push_back(glm::mat4(1.0f));
+                //_vectorMatrixStack.back() = glm::scale(_vectorMatrixStack.back(), glm::vec3(2, 2, 2));
+
+                //========================================
+                std::function<void(std::vector<SActorInstance> const &)> DrawActors;
+                DrawActors = [&](std::vector<SActorInstance> const & _vectorActorInstances)->void
+                {
+                    // Draw the actors
+                    for (auto const& _ActorInstance : _vectorActorInstances)
+                    {
+                        if (_ActorInstance.m_bShow == false)
+                        {
+                            continue;
+                        }
+
+                        auto _pCompound = _ActorInstance.m_pCompound;
+                        auto _pActor = _pCompound->GetActorById(_ActorInstance.m_uActorId);
+
+                        if (_pActor == nullptr)
+                        {
+                            assert(false);
+                            continue;
+                        }
+
+                        float _fTime = fmodf(m_fTime, _pCompound->GetStageLength());
+                        CCompoundSprite::SActorState _ActorState = _pCompound->GetStateForActorAtTime(_pActor->m_uID, _fTime);
+
+                        _sTempHierarchy += _sIndent + _pActor->m_sSprite + "\n";
+
+                        if (_ActorInstance.m_vectorActors.size() == 0)
+                        {
+                            std::string _sTexture = _pCompound->GetTextureForSprite(_pActor->m_sSprite);
+                            m_mapTextureNameId[_sTexture];
+
+                            CSpriteSheet const& _SpriteSheet = m_mapSpriteSheets[_sTexture];
+                            auto const& _mapSprites = _SpriteSheet.GetSpriteData();
+                            auto _itSprite = _mapSprites.find(_pActor->m_sSprite);
+                            if (_itSprite != _mapSprites.end())
+                            {
+                                CSpriteSheet::SSpriteCell const& _Cell = _itSprite->second;
+
+                                gl_render_helper::DrawSprite(_vectorMatrixStack.back(),
+                                                             _Cell,
+                                                             _ActorState,
+                                                             program,
+                                                             m_mapTextureNameId[_sTexture]);
+                            }
+                        }
+                        else
+                        {
+                            // copy current matrix, modify for this actor and push onto our stack
+                            glm::mat4 _matSub = _vectorMatrixStack.back();
+                            _matSub = glm::translate(_matSub, glm::vec3(_ActorState.m_fPosX, _ActorState.m_fPosY, 0.0f));
+                            _matSub = glm::scale(_matSub, glm::vec3(_ActorState.m_fScaleX, _ActorState.m_fScaleY, 0.0f));
+                            _vectorMatrixStack.push_back(_matSub);
+
+                            _sIndent += "\t";
+
+                            DrawActors(_ActorInstance.m_vectorActors);
+
+                            _sIndent = _sIndent.substr(0, _sIndent.size() - 1);
+
+                            _vectorMatrixStack.pop_back();
+                        }
+                    }
+                };
+                //========================================
+
+                DrawActors(m_vectorActorInstances);
+                
             }
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -536,6 +672,15 @@ int CSpriteTool::Run()
                 // DockSpace menu bar
                 if (ImGui::BeginMenuBar())
                 {
+                    if (ImGui::BeginMenu("File"))
+                    {
+                        if (ImGui::MenuItem("Open Compound Sprite..."))
+                        {
+                            m_sOpenFile = FileHelper::OpenFileDialog("json");
+                        }
+                        ImGui::EndMenu();
+                    }
+
                     if (ImGui::BeginMenu("Styles"))
                     {
                         for (auto _sItem : s_vectorStyles)
@@ -566,7 +711,63 @@ int CSpriteTool::Run()
                 // Animation timeline
                 if (ImGui::Begin("timeline", nullptr))
                 {
+                    //========================================
+                    std::function<void(std::vector<SActorInstance> &)> DrawActorTimelines;
+                    DrawActorTimelines = [&](std::vector<SActorInstance> & _vectorActorInstances)->void
+                    {
+                        // Draw the actors
+                        for (auto & _ActorInstance : _vectorActorInstances)
+                        {
+                            ImGui::PushID(_ActorInstance.m_uActorId);
 
+                            auto _pCompound = _ActorInstance.m_pCompound;
+                            auto _pActor = _pCompound->GetActorById(_ActorInstance.m_uActorId);
+
+                            if (_pActor != nullptr)
+                            {
+
+                                float _fTime = fmodf(m_fTime, _pCompound->GetStageLength());
+                                CCompoundSprite::SActorState _ActorState = _pCompound->GetStateForActorAtTime(_pActor->m_uID, _fTime);
+
+                                if (_ActorInstance.m_vectorActors.size() == 0)
+                                {
+                                    //std::string _sTexture = _pCompound->GetTextureForSprite(_pActor->m_sSprite);
+                                    //m_mapTextureNameId[_sTexture];
+
+                                    //CSpriteSheet const& _SpriteSheet = mapSpriteSheets[_sTexture];
+                                    //auto const& _mapSprites = _SpriteSheet.GetSpriteData();
+                                    //auto _itSprite = _mapSprites.find(_pActor->m_sSprite);
+                                    //if (_itSprite != _mapSprites.end())
+                                    //{
+                                    //    CSpriteSheet::SSpriteCell const& _Cell = _itSprite->second;
+
+
+                                    //    gl_render_helper::DrawSprite(_vectorMatrixStack.back(),
+                                    //                                 _Cell,
+                                    //                                 _ActorState,
+                                    //                                 program,
+                                    //                                 m_mapTextureNameId[_sTexture]);
+
+                                    //}
+
+                                    ImGui::Checkbox(_pActor->m_sSprite.c_str(), &_ActorInstance.m_bShow);
+                                }
+                                else
+                                {
+                                    ImGui::Checkbox(_pActor->m_sSprite.c_str(), &_ActorInstance.m_bShow);
+                                    ImGui::Indent();
+                                    DrawActorTimelines(_ActorInstance.m_vectorActors);
+                                    ImGui::Unindent();
+                                }
+                            }
+
+                            ImGui::PopID();
+                        }
+                    };
+                    //========================================
+
+                    ImGui::Text("ROOT");
+                    DrawActorTimelines(m_vectorActorInstances);
                 }
                 ImGui::End();
 
@@ -576,10 +777,10 @@ int CSpriteTool::Run()
                     ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
                     if (ImGui::BeginTabBar("sprite_sheets_tab_bar", tab_bar_flags))
                     {
-                        for (auto& _SpriteSheetItem : mapSpriteSheets)
+                        for (auto& _SpriteSheetItem : m_mapSpriteSheets)
                         {
-                            auto _itTexNameId = mapTextureNameId.find(_SpriteSheetItem.first);
-                            if (_itTexNameId != mapTextureNameId.end())
+                            auto _itTexNameId = m_mapTextureNameId.find(_SpriteSheetItem.first);
+                            if (_itTexNameId != m_mapTextureNameId.end())
                             {
                                 if (ImGui::BeginTabItem(_SpriteSheetItem.first.c_str()))
                                 {
