@@ -46,6 +46,30 @@ namespace FileHelper
         return _sPathResult;
     }
 
+    std::string PickFolderDialog(std::string const& _sDefaultPath /*= ""*/)
+    {
+        std::string _sPathResult;
+
+        nfdchar_t* _pOutPath = nullptr;
+        nfdresult_t _Result = NFD_PickFolder(_sDefaultPath.c_str(), &_pOutPath);
+
+        if (_Result == NFD_OKAY)
+        {
+            _sPathResult = std::string(_pOutPath);
+            free(_pOutPath);
+        }
+        else if (_Result == NFD_CANCEL)
+        {
+            printf("User cancelled.\n");
+        }
+        else
+        {
+            printf("Error: %s\n", NFD_GetError());
+        }
+
+        return _sPathResult;
+    }
+
 	std::string GetFileContentsString(std::string const& _sFilePath)
 	{
         std::string _sContents;

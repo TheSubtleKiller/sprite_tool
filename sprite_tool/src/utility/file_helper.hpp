@@ -9,6 +9,7 @@ namespace FileHelper
     std::string GetAbsolutePath(std::string const& _sPath);
 
     std::string OpenFileDialog(std::string const& _sExt, std::string const& _sDefaultPath = "");
+    std::string PickFolderDialog(std::string const& _sDefaultPath = "");
 
 	std::string GetFileContentsString(std::string const &_sFilePath);
 	std::vector<uint8_t> GetFileContents(std::string const& _sFilePath);
