@@ -52,6 +52,7 @@
     <ClInclude Include="src\ui\ui.hpp" />
     <ClInclude Include="src\utility\file_helper.hpp" />
     <ClInclude Include="src\utility\stl_helper.hpp" />
+    <ClInclude Include="src\version.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

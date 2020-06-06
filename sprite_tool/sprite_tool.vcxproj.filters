@@ -109,5 +109,8 @@
     <ClInclude Include="src\ui\imgui_style.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\version.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

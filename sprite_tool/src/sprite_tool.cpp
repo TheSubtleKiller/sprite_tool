@@ -4,6 +4,8 @@
 
 #include "sprite_tool.hpp"
 
+#include "version.hpp"
+
 #include "utility/file_helper.hpp"
 #include "utility/stl_helper.hpp"
 
@@ -237,7 +239,15 @@ void CSpriteTool::LoadTextures(std::string const& _sParentFolder, std::vector<st
 {
     for (auto& _sTexture : _vectorTextures)
     {
-        m_mapTextureNameId[_sTexture] = 0;
+        uint32_t& _uTextureId = _mapTextureNameId[_sTexture];
+
+        // Already loaded, skip
+        if (_uTextureId != 0)
+        {
+            continue;
+        }
+
+        fprintf(stdout, "Attempting to load texture '%s\\%s'.\n", _sParentFolder.c_str(), _sTexture.c_str());
 
         std::string _sTexturePath = stl_helper::Format("%s/%s", _sParentFolder.c_str(), _sTexture.c_str());
 
@@ -248,7 +258,6 @@ void CSpriteTool::LoadTextures(std::string const& _sParentFolder, std::vector<st
         {
             uint32_t _eChannels = (_ImageData.m_uChannels == 4) ? GL_RGBA : GL_RGB;
 
-            uint32_t& _uTextureId = _mapTextureNameId[_sTexture];
             glGenTextures(1, &_uTextureId);
             glBindTexture(GL_TEXTURE_2D, _uTextureId);
             glTexImage2D(GL_TEXTURE_2D, 0, _eChannels, width, height, 0, _eChannels, GL_UNSIGNED_BYTE, _ImageData.m_pData->data());
@@ -286,6 +295,9 @@ int CSpriteTool::Run()
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
+
+    std::string _sWindowTitle = stl_helper::Format("Sprite Tool %s", GetVersionString().c_str());
+    glfwSetWindowTitle(window, _sWindowTitle.c_str());
 
     glfwSetWindowUserPointer(window, this);
     
