@@ -330,7 +330,6 @@ int CSpriteTool::Run()
         fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-    fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
     //========================================
 
     // NOTE: OpenGL error checks have been omitted for brevity
@@ -481,13 +480,34 @@ int CSpriteTool::Run()
         //========================================
         if (m_sOpenFile.empty() == false)
         {
+            // Delete everything so we have a clean slate for next compound
+            {
+                m_vectorActorInstances.clear();
+                m_mapCompounds.clear();
+                m_mapSpriteSheets.clear();
+                for (auto& item : m_mapTextureNameId)
+                {
+                    glDeleteTextures(1, &item.second);
+                }
+                m_mapTextureNameId.clear();
+            }
+
+            // Load new compound
             bool _bRetVal = OpenJSONFile(m_sOpenFile);
 
             // If success, build actors for rendering
             if (_bRetVal == true)
             {
-                auto _pRootCompound = m_mapCompounds.begin()->second;
-                m_vectorActorInstances = BuildActorInstances(_pRootCompound);
+                auto _itCompound = m_mapCompounds.find(FileHelper::GetAbsolutePath(m_sOpenFile));
+                if (_itCompound == m_mapCompounds.end())
+                {
+                    fprintf(stdout, "%s", "Couldn't find compound to build actor instances.");
+                }
+                else
+                {
+                    auto _pRootCompound = _itCompound->second;
+                    m_vectorActorInstances = BuildActorInstances(_pRootCompound);
+                }
             }
 
             m_sOpenFile = "";
@@ -701,6 +721,15 @@ int CSpriteTool::Run()
                             {
                                 ChooseStyle(_sItem);
                             }
+                        }
+                        ImGui::EndMenu();
+                    }
+
+                    if (ImGui::BeginMenu("About"))
+                    {
+                        if (ImGui::MenuItem("Made By Argh#2682"))
+                        {
+
                         }
                         ImGui::EndMenu();
                     }
